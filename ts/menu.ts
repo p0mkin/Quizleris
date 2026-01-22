@@ -187,9 +187,16 @@ function startStudentQuiz(name: string, quizId: string): void {
 
     let quiz = loadQuizFromStorage(quizId);
 
-    // If not found in storage, check if it's the specific "demo" keyword
-    if (!quiz && quizId === "demo") {
-        quiz = getDemoQuiz();
+    // If not found in storage, check premade quizzes
+    if (!quiz) {
+        if (quizId === "demo") {
+            quiz = getDemoQuiz();
+        } else {
+            const premade = getPremadeQuizzes().find(q => q.id === quizId);
+            if (premade) {
+                quiz = premade;
+            }
+        }
     }
 
     if (!quiz) {

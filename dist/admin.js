@@ -16,7 +16,6 @@ let adminQuizTitle;
 let adminQuestionsList;
 let adminAddQuestionBtn;
 let adminScanQuestionBtn;
-let adminGenerateAiBtn;
 let adminOcrInput;
 let adminSaveBtn;
 let adminExportBtn;
@@ -34,7 +33,6 @@ export function initAdminElements() {
     adminQuestionsList = getRequiredElement("admin-questions-list");
     adminAddQuestionBtn = getRequiredElement("admin-add-question");
     adminScanQuestionBtn = getRequiredElement("admin-scan-question");
-    adminGenerateAiBtn = getRequiredElement("admin-generate-ai");
     adminOcrInput = getRequiredElement("admin-ocr-input");
     adminSaveBtn = getRequiredElement("admin-save");
     adminExportBtn = getRequiredElement("admin-export");
@@ -88,6 +86,9 @@ export function renderAdminForm() {
         adminTimerMode.value = adminQuiz.timerConfig.mode;
         adminTimerLimit.value = String(adminQuiz.timerConfig.limitSeconds);
     }
+    // Toggle time limit visibility based on mode
+    updateTimerLimitVisibility();
+    adminTimerMode.onchange = updateTimerLimitVisibility;
     adminQuestionsList.innerHTML = "";
     adminQuiz.questions.forEach((q, qIdx) => {
         const qDiv = document.createElement("div");
@@ -133,6 +134,8 @@ export function renderAdminForm() {
                 return;
             if (!confirm("Are you sure you want to delete this specific question?"))
                 return;
+            // CRITICAL: Sync current state from DOM before deleting to prevent data loss
+            updateQuizFromDOM();
             adminQuiz.questions.splice(qIdx, 1);
             renderAdminForm();
         });
@@ -141,15 +144,13 @@ export function renderAdminForm() {
             btn.addEventListener("click", (e) => {
                 if (!adminQuiz)
                     return;
-                const target = e.currentTarget; // use currentTarget to get the button, not inner SVG
+                const target = e.currentTarget;
                 const qIdx = parseInt(target.dataset.qidx);
                 const cIdx = parseInt(target.dataset.cidx);
-                // Optional: Prevent leaving less than 2 choices? The user validator check is at save time.
-                // But preventing it here is nicer.
-                // The user only asked for "delete individual choice".
-                // I'll add the confirm.
                 if (!confirm("Remove this choice?"))
                     return;
+                // Sync state before modifying
+                updateQuizFromDOM();
                 adminQuiz.questions[qIdx].choices.splice(cIdx, 1);
                 renderAdminForm();
             });
@@ -168,6 +169,33 @@ export function renderAdminForm() {
             });
         });
     });
+}
+// Helper to sync DOM to State
+function updateQuizFromDOM() {
+    if (!adminQuiz)
+        return;
+    adminQuestionsList.querySelectorAll(".admin-question-prompt").forEach((textarea) => {
+        const qIdx = parseInt(textarea.dataset.qidx);
+        if (adminQuiz.questions[qIdx]) {
+            adminQuiz.questions[qIdx].prompt = textarea.value;
+        }
+    });
+    adminQuestionsList.querySelectorAll(".admin-choice-text").forEach((input) => {
+        const qIdx = parseInt(input.dataset.qidx);
+        const cIdx = parseInt(input.dataset.cidx);
+        if (adminQuiz.questions[qIdx] && adminQuiz.questions[qIdx].choices[cIdx]) {
+            adminQuiz.questions[qIdx].choices[cIdx].text = input.value;
+        }
+    });
+}
+function updateTimerLimitVisibility() {
+    const limitContainer = adminTimerLimit.parentElement;
+    if (adminTimerMode.value === "none") {
+        limitContainer.style.display = "none";
+    }
+    else {
+        limitContainer.style.display = "block";
+    }
 }
 // Save admin quiz
 export function saveAdminQuiz() {
@@ -286,24 +314,6 @@ export function setupAdminEvents() {
     adminScanQuestionBtn.addEventListener("click", () => {
         adminOcrInput.click();
     });
-    // AI Generation Button
-    adminGenerateAiBtn.addEventListener("click", async () => {
-        const topic = prompt("Enter a topic for the AI to generate a quiz about (e.g., 'Physics', 'History'):");
-        if (!topic)
-            return;
-        adminGenerateAiBtn.disabled = true;
-        adminGenerateAiBtn.textContent = "✨ Generating...";
-        try {
-            await simulateAinGeneration(topic);
-        }
-        catch (e) {
-            alert("Failed to generate quiz.");
-        }
-        finally {
-            adminGenerateAiBtn.disabled = false;
-            adminGenerateAiBtn.textContent = "✨ Generate with AI";
-        }
-    });
     // Handle file selection
     adminOcrInput.addEventListener("change", handleOCRUpload);
     adminSaveBtn.addEventListener("click", saveAdminQuiz);
@@ -375,60 +385,5 @@ export function setupAdminEvents() {
             renderDashboard();
         });
     }
-}
-// Mock AI Generation
-async function simulateAinGeneration(topic) {
-    if (!adminQuiz)
-        return;
-    // Simulate delay
-    await new Promise(r => setTimeout(r, 1500));
-    const newQuestions = [];
-    const t = topic.toLowerCase();
-    if (t.includes("history")) {
-        newQuestions.push({
-            id: crypto.randomUUID(),
-            prompt: "Who was the first President of the United States?",
-            choices: [
-                { id: crypto.randomUUID(), text: "George Washington", isCorrect: true },
-                { id: crypto.randomUUID(), text: "Thomas Jefferson", isCorrect: false },
-                { id: crypto.randomUUID(), text: "Abraham Lincoln", isCorrect: false }
-            ]
-        });
-        newQuestions.push({
-            id: crypto.randomUUID(),
-            prompt: "In which year did World War II end?",
-            choices: [
-                { id: crypto.randomUUID(), text: "1945", isCorrect: true },
-                { id: crypto.randomUUID(), text: "1939", isCorrect: false },
-                { id: crypto.randomUUID(), text: "1918", isCorrect: false }
-            ]
-        });
-    }
-    else if (t.includes("science") || t.includes("physics")) {
-        newQuestions.push({
-            id: crypto.randomUUID(),
-            prompt: "What is the speed of light in vacuum?",
-            choices: [
-                { id: crypto.randomUUID(), text: "299,792 km/s", isCorrect: true },
-                { id: crypto.randomUUID(), text: "150,000 km/s", isCorrect: false },
-                { id: crypto.randomUUID(), text: "1,080 km/h", isCorrect: false }
-            ]
-        });
-    }
-    else {
-        // Default generic
-        newQuestions.push({
-            id: crypto.randomUUID(),
-            prompt: `Basic question about ${topic}`,
-            choices: [
-                { id: crypto.randomUUID(), text: "Correct Answer", isCorrect: true },
-                { id: crypto.randomUUID(), text: "Wrong Answer", isCorrect: false },
-                { id: crypto.randomUUID(), text: "Another Option", isCorrect: false }
-            ]
-        });
-    }
-    adminQuiz.questions.push(...newQuestions);
-    renderAdminForm();
-    alert(`Generated ${newQuestions.length} questions about ${topic}!`);
 }
 //# sourceMappingURL=admin.js.map
