@@ -20,14 +20,6 @@
   <!-- Tesseract.js for OCR -->
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
 
-  <!-- Verification script -->
-  <script>
-    console.log("HTML loaded, inline script running");
-    window.addEventListener('DOMContentLoaded', () => {
-      console.log("DOMContentLoaded fired");
-      alert("Page loaded! If you see this but buttons don't work, the module script is failing.");
-    });
-  </script>
 
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
   <script type="module" defer src="dist/app.js"></script>
