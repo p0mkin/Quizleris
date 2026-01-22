@@ -1,6 +1,4 @@
 import { getRequiredElement } from "./dom.js";
-import { toggleAdminMode } from "./admin.js";
-import { renderDashboard } from "./dashboard.js";
 
 // DOM Elements
 let startMenu: HTMLElement;
@@ -10,71 +8,48 @@ let studentBtn: HTMLButtonElement;
 let adminBtn: HTMLButtonElement;
 let dashboardBtn: HTMLButtonElement;
 
-export function initMenuElements(): void {
+export function setupMenu(callbacks: { onAdmin: () => void, onDashboard: () => void }): void {
     startMenu = getRequiredElement("start-menu");
-    // These might be hidden, but they exist
     quizHeader = document.querySelector(".quiz-header") as HTMLElement;
     quizMain = document.querySelector(".quiz-main") as HTMLElement;
 
     studentBtn = getRequiredElement("menu-btn-student") as HTMLButtonElement;
     adminBtn = getRequiredElement("menu-btn-admin") as HTMLButtonElement;
     dashboardBtn = getRequiredElement("menu-btn-dashboard") as HTMLButtonElement;
+
+    adminBtn.onclick = () => {
+        try {
+            console.log("Admin clicked");
+            callbacks.onAdmin();
+        } catch (e) { alert("Admin Click Error: " + e); }
+    };
+
+    studentBtn.onclick = () => {
+        try {
+            handleStudentClick();
+        } catch (e) { alert("Student Click Error: " + e); }
+    };
+
+    dashboardBtn.onclick = () => {
+        startMenu.style.display = "none";
+        callbacks.onDashboard();
+    };
 }
 
 export function renderStartMenu(): void {
     // Ensure elements are ready
-    if (!startMenu) initMenuElements();
+    if (!startMenu) {
+        console.error("Menu not setup! Call setupMenu() first.");
+        return;
+    }
 
     // Show menu, hide game
     startMenu.style.display = "flex";
     quizHeader.style.display = "none";
     quizMain.style.display = "none";
-
-    // Wire up buttons (idempotent checks or simple onclick replacement)
-    adminBtn.onclick = () => {
-        handleAdminClick();
-    };
-
-    studentBtn.onclick = () => {
-        handleStudentClick();
-    };
-
-    dashboardBtn.onclick = () => {
-        // Hide menu handled by renderDashboard?
-        // dashboard.ts says: "Hide others (handled by caller usually...)"
-        // But dashboard.ts renderDashboard() sets dashboardView.style.display = "block".
-        // It doesn't hide startMenu.
-
-        startMenu.style.display = "none";
-        renderDashboard();
-    };
 }
 
-function handleAdminClick(): void {
-    // For now, just switch to admin mode logic
-    // We'll hide the menu and trigger the existing admin toggle
-    // But existing admin toggle asks for password if needed.
 
-    // UI Transition
-    startMenu.style.display = "none";
-    quizHeader.style.display = "flex";
-    quizMain.style.display = "flex"; // Admin panel appears within main? No, admin panel is separate.
-
-    // Check index.html: admin-panel is a sibling of quiz-main?
-    // <div id="app-root">
-    //   <header>...</header>
-    //   <main class="quiz-main">...</main>
-    //   <section id="admin-panel">...</section>
-    // </div>
-    // The admin toggle is in the header.
-    // If we click "I'm Admin", we probably want to show the header and invoke the toggleAdminMode logic.
-
-    // Make sure admin elements are initialized
-    // They are initialized in app.ts, but let's be safe.
-
-    // Trigger the toggle
-    toggleAdminMode();
-}
 
 // Student form handling
 function handleStudentClick(): void {

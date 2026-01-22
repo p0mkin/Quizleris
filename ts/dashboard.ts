@@ -1,13 +1,13 @@
 import { getRequiredElement } from "./dom.js";
 import { getResults, getHighScores, STORAGE_KEY_RESULTS } from "./storage.js";
-import { renderStartMenu } from "./menu.js";
+// import { renderStartMenu } from "./menu.js"; // REMOVED
 
 let dashboardView: HTMLElement;
 let dashboardContent: HTMLElement;
 let closeBtn: HTMLButtonElement;
 let clearBtn: HTMLButtonElement;
 
-export function initDashboardElements(): void {
+export function setupDashboard(callbacks: { onHome: () => void }): void {
     dashboardView = getRequiredElement("dashboard-view");
     dashboardContent = getRequiredElement("dashboard-content");
     closeBtn = getRequiredElement("dashboard-close-btn") as HTMLButtonElement;
@@ -15,7 +15,7 @@ export function initDashboardElements(): void {
 
     closeBtn.addEventListener("click", () => {
         dashboardView.style.display = "none";
-        renderStartMenu();
+        callbacks.onHome();
     });
 
     clearBtn.addEventListener("click", () => {
@@ -27,7 +27,8 @@ export function initDashboardElements(): void {
 }
 
 export function renderDashboard(): void {
-    if (!dashboardView) initDashboardElements();
+    // if (!dashboardView) setupDashboard(); // Can't auto init without callbacks anymore logic
+
 
     // Hide others (handled by caller usually, but let's be safe or assume caller handles it)
     // The caller (menu.ts) should hide itself.

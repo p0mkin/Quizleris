@@ -5,8 +5,7 @@ import { generateQuizId, saveQuizToStorage } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
 import { initializeQuiz } from "./render.js";
-import { renderStartMenu } from "./menu.js";
-import { renderDashboard } from "./dashboard.js";
+// import { renderDashboard } from "./dashboard.js"; // REMOVED
 
 // Admin UI state
 let adminMode = false;
@@ -30,7 +29,15 @@ let adminTimerMode: HTMLSelectElement;
 let adminTimerLimit: HTMLInputElement;
 
 // Initialize admin DOM refs (call after DOM is ready)
-export function initAdminElements(): void {
+// Callbacks
+let goHome: () => void = () => { };
+let goDashboard: () => void = () => { };
+
+// Initialize admin DOM refs and events
+export function setupAdmin(callbacks: { onHome: () => void, onDashboard: () => void }): void {
+    goHome = callbacks.onHome;
+    goDashboard = callbacks.onDashboard;
+
     adminToggle = getRequiredElement("admin-toggle") as HTMLButtonElement;
     adminPanel = getRequiredElement("admin-panel");
     adminQuizTitle = getRequiredElement("admin-quiz-title") as HTMLInputElement;
@@ -51,6 +58,9 @@ export function initAdminElements(): void {
     if (!isAdminAccessAllowed()) {
         adminToggle.style.display = "none";
     }
+
+    // Wire up events immediately
+    setupAdminEventsInternal();
 }
 
 // Toggle admin mode
@@ -95,8 +105,17 @@ export function renderAdminForm(): void {
     }
 
     // Toggle time limit visibility based on mode
-    updateTimerLimitVisibility();
-    adminTimerMode.onchange = updateTimerLimitVisibility;
+    try {
+        updateTimerLimitVisibility();
+    } catch (e) { console.error("Timer vis error", e); }
+
+    adminTimerMode.onchange = () => {
+        try {
+            updateTimerLimitVisibility();
+        } catch (e) {
+            alert("Timer update error: " + e);
+        }
+    };
 
     adminQuestionsList.innerHTML = "";
 
@@ -131,8 +150,12 @@ export function renderAdminForm(): void {
         });
 
         // Wire up choice events
+        // Wire up choice events
         qDiv.querySelector(`.admin-add-choice-btn[data-qidx="${qIdx}"]`)!.addEventListener("click", () => {
             if (!adminQuiz) return;
+            // Sync before modifying
+            updateQuizFromDOM();
+
             adminQuiz.questions[qIdx].choices.push({
                 id: String.fromCharCode(97 + adminQuiz.questions[qIdx].choices.length), // a, b, c, d...
                 text: "",
@@ -318,25 +341,36 @@ export async function handleOCRUpload(event: Event): Promise<void> {
 }
 
 // Wire up admin events (call after DOM is ready)
-export function setupAdminEvents(): void {
+function setupAdminEventsInternal(): void {
     adminToggle.addEventListener("click", toggleAdminMode);
     adminAddQuestionBtn.addEventListener("click", () => {
-        if (!adminQuiz) {
-            adminQuiz = {
-                id: generateQuizId(),
-                title: "New Quiz",
-                questions: [],
-            };
+        try {
+            if (!adminQuiz) {
+                adminQuiz = {
+                    id: generateQuizId(),
+                    title: "New Quiz",
+                    questions: [],
+                };
+            }
+
+            // Sync before adding
+            if (adminQuiz.questions.length > 0) {
+                updateQuizFromDOM();
+            }
+
+            adminQuiz.questions.push({
+                id: `q${adminQuiz.questions.length + 1}`,
+                prompt: "",
+                choices: [
+                    { id: "a", text: "", isCorrect: true },
+                    { id: "b", text: "", isCorrect: false },
+                ],
+            });
+            renderAdminForm();
+        } catch (e) {
+            console.error(e);
+            alert("Error adding question: " + e);
         }
-        adminQuiz.questions.push({
-            id: `q${adminQuiz.questions.length + 1}`,
-            prompt: "",
-            choices: [
-                { id: "a", text: "", isCorrect: true },
-                { id: "b", text: "", isCorrect: false },
-            ],
-        });
-        renderAdminForm();
     });
 
     // OCR button triggers file input
@@ -407,7 +441,7 @@ export function setupAdminEvents(): void {
             // Let's call toggleAdminMode() if it is open?
             // Or just reset state manually.
             if (adminMode) toggleAdminMode(); // This will close it and update state/text
-            renderStartMenu();
+            goHome();
         });
     }
 
@@ -415,7 +449,7 @@ export function setupAdminEvents(): void {
     if (dashBtn) {
         dashBtn.addEventListener("click", () => {
             if (adminMode) toggleAdminMode(); // Close admin panel
-            renderDashboard();
+            goDashboard();
         });
     }
 }

@@ -20,6 +20,15 @@
   <!-- Tesseract.js for OCR -->
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
 
+  <!-- Verification script -->
+  <script>
+    console.log("HTML loaded, inline script running");
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log("DOMContentLoaded fired");
+      alert("Page loaded! If you see this but buttons don't work, the module script is failing.");
+    });
+  </script>
+
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
   <script type="module" defer src="dist/app.js"></script>
 </head>
@@ -105,8 +114,6 @@
         <div class="admin-question-actions">
           <button id="admin-add-question" class="btn">+ Add Question</button>
           <button id="admin-scan-question" class="btn">📷 Scan Question (OCR)</button>
-          <button id="admin-generate-ai" class="btn"
-            style="background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);">✨ Generate with AI</button>
           <input type="file" id="admin-ocr-input" accept="image/*" style="display: none;" />
         </div>
         <div class="admin-actions">

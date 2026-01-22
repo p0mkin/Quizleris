@@ -2,7 +2,9 @@
 export function getRequiredElement(id) {
     const el = document.getElementById(id);
     if (!el) {
-        throw new Error(`Root element #${id} not found in index.html`);
+        const msg = `CRITICAL ERROR: Root element #${id} not found in index.html`;
+        alert(msg);
+        throw new Error(msg);
     }
     return el;
 }
