@@ -1,5 +1,5 @@
 import { getRequiredElement } from "./dom.js";
-import { getResults, STORAGE_KEY_RESULTS } from "./storage.js";
+import { getResults, getHighScores, STORAGE_KEY_RESULTS } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 
 let dashboardView: HTMLElement;
@@ -37,6 +37,7 @@ export function renderDashboard(): void {
 
 function renderDashboardList(): void {
     const results = getResults();
+    const highScores = getHighScores();
 
     if (results.length === 0) {
         dashboardContent.innerHTML = "<p class='no-results'>No results recorded yet.</p>";
@@ -50,16 +51,19 @@ function renderDashboardList(): void {
     results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     let html = `
-        <table class="dashboard-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Name</th>
-                    <th>Quiz</th>
-                    <th>Score</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:300px;">
+                <h3 style="margin-bottom:10px; color:var(--accent);">Recent Activity</h3>
+                <table class="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Quiz</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
     `;
 
     results.forEach(r => {
@@ -79,6 +83,37 @@ function renderDashboardList(): void {
         `;
     });
 
-    html += `</tbody></table>`;
+    html += `</tbody></table></div>`;
+
+    // High Scores Section
+    html += `
+        <div style="flex:1; min-width:300px;">
+            <h3 style="margin-bottom:10px; color:var(--success);">High Scores</h3>
+             <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Quiz ID</th>
+                        <th>Top Student</th>
+                        <th>Score</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    highScores.forEach(h => {
+        const percentage = Math.round((h.score / h.maxScore) * 100);
+        html += `
+            <tr>
+                <td>${h.quizId}</td>
+                <td>${h.name}</td>
+                <td class="score-good">${h.score}/${h.maxScore} (${percentage}%)</td>
+                <td>${new Date(h.date).toLocaleDateString()}</td>
+            </tr>
+         `;
+    });
+
+    html += `</tbody></table></div></div>`;
+
     dashboardContent.innerHTML = html;
 }

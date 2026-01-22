@@ -72,20 +72,48 @@
 
     <!-- Admin panel (hidden by default) -->
     <section id="admin-panel" class="admin-panel" style="display: none;">
-      <h2>Create/Edit Quiz</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Create/Edit Quiz</h2>
+        <div style="display: flex; gap: 10px;">
+          <button id="admin-btn-dashboard" class="btn" style="font-size: 0.9rem; padding: 6px 12px;">Dashboard</button>
+          <button id="admin-btn-back" class="btn" style="font-size: 0.9rem; padding: 6px 12px;">Back to Menu</button>
+        </div>
+      </div>
       <div class="admin-form">
         <label>
           Quiz Title:
           <input type="text" id="admin-quiz-title" placeholder="My Math Quiz" />
         </label>
+
+        <div
+          style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 5px;">Timer Mode:</label>
+            <select id="admin-timer-mode" class="admin-form" style="width: 100%;">
+              <option value="question">Time per Question</option>
+              <option value="quiz">Time for Whole Quiz</option>
+              <option value="none">No Timer (Stopwatch)</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 5px;">Time Limit (seconds):</label>
+            <input type="number" id="admin-timer-limit" class="admin-form" value="30" style="width: 100%;" />
+          </div>
+        </div>
+
         <div id="admin-questions-list"></div>
         <div class="admin-question-actions">
           <button id="admin-add-question" class="btn">+ Add Question</button>
           <button id="admin-scan-question" class="btn">📷 Scan Question (OCR)</button>
+          <button id="admin-generate-ai" class="btn"
+            style="background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);">✨ Generate with AI</button>
           <input type="file" id="admin-ocr-input" accept="image/*" style="display: none;" />
         </div>
         <div class="admin-actions">
           <button id="admin-save" class="btn btn-primary">Save Quiz</button>
+          <button id="admin-export" class="btn btn-secondary">Export JSON</button>
+          <button id="admin-import-btn" class="btn btn-secondary">Import JSON</button>
+          <input type="file" id="admin-import-input" accept=".json" style="display: none;" />
           <button id="admin-cancel" class="btn">Cancel</button>
         </div>
         <div id="admin-share-code" class="admin-share" style="display: none;"></div>

@@ -12,8 +12,16 @@ export type Question = {
     choices: Choice[];
 };
 
+export type TimerMode = "question" | "quiz" | "none";
+
+export type TimerConfig = {
+    mode: TimerMode;
+    limitSeconds: number;
+};
+
 export type Quiz = {
     id: string;
     title: string;
     questions: Question[];
+    timerConfig?: TimerConfig;
 };

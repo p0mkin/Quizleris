@@ -1,10 +1,12 @@
-import type { Quiz } from "./types.js";
+import type { Quiz, Question } from "./types.js";
 import { quiz } from "./state.js";
 import { getRequiredElement } from "./dom.js";
 import { generateQuizId, saveQuizToStorage } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
 import { initializeQuiz } from "./render.js";
+import { renderStartMenu } from "./menu.js";
+import { renderDashboard } from "./dashboard.js";
 
 // Admin UI state
 let adminMode = false;
@@ -17,10 +19,16 @@ let adminQuizTitle: HTMLInputElement;
 let adminQuestionsList: HTMLElement;
 let adminAddQuestionBtn: HTMLButtonElement;
 let adminScanQuestionBtn: HTMLButtonElement;
+let adminGenerateAiBtn: HTMLButtonElement;
 let adminOcrInput: HTMLInputElement;
 let adminSaveBtn: HTMLButtonElement;
+let adminExportBtn: HTMLButtonElement;
+let adminImportBtn: HTMLButtonElement;
+let adminImportInput: HTMLInputElement;
 let adminCancelBtn: HTMLButtonElement;
 let adminShareCode: HTMLElement;
+let adminTimerMode: HTMLSelectElement;
+let adminTimerLimit: HTMLInputElement;
 
 // Initialize admin DOM refs (call after DOM is ready)
 export function initAdminElements(): void {
@@ -30,10 +38,16 @@ export function initAdminElements(): void {
     adminQuestionsList = getRequiredElement("admin-questions-list");
     adminAddQuestionBtn = getRequiredElement("admin-add-question") as HTMLButtonElement;
     adminScanQuestionBtn = getRequiredElement("admin-scan-question") as HTMLButtonElement;
+    adminGenerateAiBtn = getRequiredElement("admin-generate-ai") as HTMLButtonElement;
     adminOcrInput = getRequiredElement("admin-ocr-input") as HTMLInputElement;
     adminSaveBtn = getRequiredElement("admin-save") as HTMLButtonElement;
+    adminExportBtn = getRequiredElement("admin-export") as HTMLButtonElement;
+    adminImportBtn = getRequiredElement("admin-import-btn") as HTMLButtonElement;
+    adminImportInput = getRequiredElement("admin-import-input") as HTMLInputElement;
     adminCancelBtn = getRequiredElement("admin-cancel") as HTMLButtonElement;
     adminShareCode = getRequiredElement("admin-share-code");
+    adminTimerMode = getRequiredElement("admin-timer-mode") as HTMLSelectElement;
+    adminTimerLimit = getRequiredElement("admin-timer-limit") as HTMLInputElement;
 
     // Hide admin toggle by default (only show if admin access allowed)
     if (!isAdminAccessAllowed()) {
@@ -72,6 +86,16 @@ export function renderAdminForm(): void {
     if (!adminQuiz) return;
 
     adminQuizTitle.value = adminQuiz.title;
+
+    // Set timer defaults
+    if (!adminQuiz.timerConfig) {
+        adminTimerMode.value = "question";
+        adminTimerLimit.value = "30";
+    } else {
+        adminTimerMode.value = adminQuiz.timerConfig.mode;
+        adminTimerLimit.value = String(adminQuiz.timerConfig.limitSeconds);
+    }
+
     adminQuestionsList.innerHTML = "";
 
     adminQuiz.questions.forEach((q, qIdx) => {
@@ -162,6 +186,12 @@ export function saveAdminQuiz(): void {
 
     // Collect form data
     adminQuiz.title = adminQuizTitle.value.trim() || "Untitled Quiz";
+
+    // Save timer config
+    adminQuiz.timerConfig = {
+        mode: adminTimerMode.value as any,
+        limitSeconds: parseInt(adminTimerLimit.value) || 30
+    };
 
     adminQuestionsList.querySelectorAll(".admin-question-prompt").forEach((textarea) => {
         const qIdx = parseInt((textarea as HTMLElement).dataset.qidx!);
@@ -280,11 +310,151 @@ export function setupAdminEvents(): void {
         adminOcrInput.click();
     });
 
+    // AI Generation Button
+    adminGenerateAiBtn.addEventListener("click", async () => {
+        const topic = prompt("Enter a topic for the AI to generate a quiz about (e.g., 'Physics', 'History'):");
+        if (!topic) return;
+
+        adminGenerateAiBtn.disabled = true;
+        adminGenerateAiBtn.textContent = "✨ Generating...";
+
+        try {
+            await simulateAinGeneration(topic);
+        } catch (e) {
+            alert("Failed to generate quiz.");
+        } finally {
+            adminGenerateAiBtn.disabled = false;
+            adminGenerateAiBtn.textContent = "✨ Generate with AI";
+        }
+    });
+
     // Handle file selection
     adminOcrInput.addEventListener("change", handleOCRUpload);
 
     adminSaveBtn.addEventListener("click", saveAdminQuiz);
+
+    // Export
+    adminExportBtn.addEventListener("click", () => {
+        if (!adminQuiz) return;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(adminQuiz, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", (adminQuiz.title || "quiz") + ".json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    });
+
+    // Import
+    adminImportBtn.addEventListener("click", () => {
+        adminImportInput.click();
+    });
+
+    adminImportInput.addEventListener("change", (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const json = JSON.parse(event.target?.result as string);
+                if (json && json.questions) {
+                    adminQuiz = json;
+                    // Ensure ID exists
+                    if (!adminQuiz!.id) adminQuiz!.id = crypto.randomUUID();
+                    renderAdminForm();
+                    alert("Quiz imported successfully!");
+                } else {
+                    alert("Invalid quiz JSON.");
+                }
+            } catch (err) {
+                alert("Error parsing JSON");
+            }
+        };
+        reader.readAsText(file);
+        (e.target as HTMLInputElement).value = ""; // Reset
+    });
+
     adminCancelBtn.addEventListener("click", () => {
         toggleAdminMode();
     });
+
+    const backBtn = document.getElementById("admin-btn-back");
+    if (backBtn) {
+        backBtn.addEventListener("click", () => {
+            adminPanel.style.display = "none";
+            adminToggle.textContent = "Admin Mode"; // Reset toggle text if needed, or rely on toggleAdminMode logic if we used it.
+            // Actually better to just hide panel and show menu, but we need to ensure adminMode state is consistent.
+            // If we just hide, adminMode var is still true.
+            // Let's call toggleAdminMode() if it is open?
+            // Or just reset state manually.
+            if (adminMode) toggleAdminMode(); // This will close it and update state/text
+            renderStartMenu();
+        });
+    }
+
+    const dashBtn = document.getElementById("admin-btn-dashboard");
+    if (dashBtn) {
+        dashBtn.addEventListener("click", () => {
+            if (adminMode) toggleAdminMode(); // Close admin panel
+            renderDashboard();
+        });
+    }
+}
+
+// Mock AI Generation
+async function simulateAinGeneration(topic: string): Promise<void> {
+    if (!adminQuiz) return;
+
+    // Simulate delay
+    await new Promise(r => setTimeout(r, 1500));
+
+    const newQuestions: Question[] = [];
+    const t = topic.toLowerCase();
+
+    if (t.includes("history")) {
+        newQuestions.push({
+            id: crypto.randomUUID(),
+            prompt: "Who was the first President of the United States?",
+            choices: [
+                { id: crypto.randomUUID(), text: "George Washington", isCorrect: true },
+                { id: crypto.randomUUID(), text: "Thomas Jefferson", isCorrect: false },
+                { id: crypto.randomUUID(), text: "Abraham Lincoln", isCorrect: false }
+            ]
+        });
+        newQuestions.push({
+            id: crypto.randomUUID(),
+            prompt: "In which year did World War II end?",
+            choices: [
+                { id: crypto.randomUUID(), text: "1945", isCorrect: true },
+                { id: crypto.randomUUID(), text: "1939", isCorrect: false },
+                { id: crypto.randomUUID(), text: "1918", isCorrect: false }
+            ]
+        });
+    } else if (t.includes("science") || t.includes("physics")) {
+        newQuestions.push({
+            id: crypto.randomUUID(),
+            prompt: "What is the speed of light in vacuum?",
+            choices: [
+                { id: crypto.randomUUID(), text: "299,792 km/s", isCorrect: true },
+                { id: crypto.randomUUID(), text: "150,000 km/s", isCorrect: false },
+                { id: crypto.randomUUID(), text: "1,080 km/h", isCorrect: false }
+            ]
+        });
+    } else {
+        // Default generic
+        newQuestions.push({
+            id: crypto.randomUUID(),
+            prompt: `Basic question about ${topic}`,
+            choices: [
+                { id: crypto.randomUUID(), text: "Correct Answer", isCorrect: true },
+                { id: crypto.randomUUID(), text: "Wrong Answer", isCorrect: false },
+                { id: crypto.randomUUID(), text: "Another Option", isCorrect: false }
+            ]
+        });
+    }
+
+    adminQuiz.questions.push(...newQuestions);
+    renderAdminForm();
+    alert(`Generated ${newQuestions.length} questions about ${topic}!`);
 }

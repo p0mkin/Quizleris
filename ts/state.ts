@@ -27,11 +27,16 @@ export class QuizState {
         return Date.now() - this.startTime;
     }
 
-    submitAnswer(choiceId: string): boolean {
+    submitAnswer(choiceId: string | null): boolean {
         if (this.hasAnswered) return false;
         this.hasAnswered = true;
-        const chosen = this.currentQuestion.choices.find((c) => c.id === choiceId);
-        const correct = !!chosen?.isCorrect;
+
+        let correct = false;
+        if (choiceId) {
+            const chosen = this.currentQuestion.choices.find((c) => c.id === choiceId);
+            correct = !!chosen?.isCorrect;
+        }
+
         if (correct) this.score += 1;
 
         // Track time for this question

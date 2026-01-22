@@ -76,8 +76,14 @@ function handleStudentClick() {
                 <label>Your Name (optional)</label>
                 <input type="text" id="student-name" class="admin-form" placeholder="Enter name to track results">
             </div>
+            
+            <div style="margin: 16px 0;">
+                <label style="margin-bottom:8px; display:block;">Try a Premade Quiz:</label>
+                <div id="premade-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+            </div>
+
             <div>
-                <label>Quiz Code / ID</label>
+                <label>Or Enter Quiz Code / ID</label>
                 <input type="text" id="quiz-id-input" class="admin-form" placeholder="demo">
             </div>
             <div style="margin-top: 16px; display: flex; gap: 10px;">
@@ -108,12 +114,49 @@ function handleStudentClick() {
             const quizInput = document.getElementById("quiz-id-input");
             startStudentQuiz(nameInput.value, quizInput.value);
         });
+        // Populate premade quizzes
+        const premadeList = formContainer.querySelector("#premade-list");
+        if (premadeList) {
+            getPremadeQuizzes().forEach(q => {
+                const btn = document.createElement("button");
+                btn.className = "btn";
+                btn.style.fontSize = "0.9rem";
+                btn.style.padding = "8px 12px";
+                btn.style.background = "rgba(255,255,255,0.05)";
+                btn.textContent = q.title;
+                btn.onclick = () => {
+                    const nameInput = document.getElementById("student-name");
+                    // We load this quiz directly, bypassing ID lookup if possible, 
+                    // OR we rely on ID lookup if we make storage support it.
+                    // But getPremadeQuizzes returns the object. 
+                    // Let's modify startStudentQuiz to accept an optional object, or just handle it here.
+                    // Easiest: Pass the object directly to a new overload or handle logic here.
+                    // Let's call a helper or modify startStudentQuiz to take (name, id | object).
+                    // For now, I'll just set the inputs and click start? No, ID might not work if it's "algebra" and not saved.
+                    // Actually, startStudentQuiz logic tries to load from storage.
+                    // I should probably save these premade quizzes to storage on first load? 
+                    // OR separate the "Start with Quiz Object" logic.
+                    // Let's create a direct start function or modify startStudentQuiz.
+                    startStudentQuizDirect(nameInput.value, q);
+                };
+                premadeList.appendChild(btn);
+            });
+        }
     }
     else {
         formContainer.style.display = "flex";
     }
 }
-import { loadQuizFromStorage, getDemoQuiz } from "./storage.js";
+function startStudentQuizDirect(name, quizData) {
+    // Reuse logic
+    if (name)
+        localStorage.setItem("current_student_name", name);
+    startMenu.style.display = "none";
+    quizHeader.style.display = "flex";
+    quizMain.style.display = "flex";
+    initializeQuiz(quizData);
+}
+import { loadQuizFromStorage, getDemoQuiz, getPremadeQuizzes } from "./storage.js";
 import { initializeQuiz } from "./render.js";
 function startStudentQuiz(name, quizId) {
     quizId = quizId.trim() || "demo"; // default to demo if empty

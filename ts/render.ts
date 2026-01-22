@@ -1,7 +1,7 @@
 import type { Quiz, Question } from "./types.js";
 import { QuizState, quiz, setQuiz } from "./state.js";
 import { questionContainer, answersContainer, statusContainer } from "./dom.js";
-import { startQuestionTimer, clearTimer } from "./timer.js";
+import { startTimer, clearTimer } from "./timer.js";
 import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 
@@ -60,11 +60,37 @@ export function onAnswer(choiceId: string): void {
         const choice = quiz!.currentQuestion.choices.find((c) => c.id === id);
         if (!choice) return;
         if (choice.isCorrect) btn.classList.add("correct");
-        if (id === choiceId && !choice.isCorrect) btn.classList.add("incorrect");
+        if (choiceId && id === choiceId && !choice.isCorrect) btn.classList.add("incorrect");
         (btn as HTMLButtonElement).disabled = true;
     });
 
-    renderStatus(isCorrect ? "Correct!" : "Incorrect", isCorrect ? "correct" : "incorrect");
+    const msg = isCorrect ? "Correct!" : choiceId ? "Incorrect" : "Time's Up!";
+    const kind = isCorrect ? "correct" : choiceId ? "incorrect" : "incorrect";
+    renderStatus(msg, kind);
+    renderNextButton();
+}
+
+function handleTimeout(): void {
+    if (!quiz || quiz.hasAnswered) return;
+
+    // If quiz mode timeout, end quiz.
+    if (quiz.quiz.timerConfig?.mode === 'quiz') {
+        showResults();
+        return;
+    }
+
+    quiz.submitAnswer(null); // Timeout answer
+
+    // Reveal answers
+    Array.from(answersContainer.querySelectorAll(".answer-btn")).forEach((btn) => {
+        const id = (btn as HTMLButtonElement).dataset.choiceId;
+        const choice = quiz!.currentQuestion.choices.find((c) => c.id === id);
+        if (!choice) return;
+        if (choice.isCorrect) btn.classList.add("correct");
+        (btn as HTMLButtonElement).disabled = true;
+    });
+
+    renderStatus("Time's Up!", "incorrect");
     renderNextButton();
 }
 
@@ -89,7 +115,12 @@ export function renderQuiz(): void {
     renderAnswers(quiz.currentQuestion);
     renderStatus("Choose an answer", "neutral");
     renderNextButton();
-    startQuestionTimer();
+    renderStatus("Choose an answer", "neutral");
+    renderNextButton();
+
+    // Default config if missing
+    const config = quiz.quiz.timerConfig || { mode: 'question', limitSeconds: 30 };
+    startTimer(config, handleTimeout);
 }
 
 // Render question counter

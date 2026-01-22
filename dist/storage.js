@@ -90,6 +90,59 @@ export function getDemoQuiz() {
         ],
     };
 }
+export function getPremadeQuizzes() {
+    return [
+        getDemoQuiz(),
+        {
+            id: "algebra",
+            title: "Algebra Basics",
+            questions: [
+                {
+                    id: "a1",
+                    prompt: "Solve for x: \\(2x + 5 = 15\\)",
+                    choices: [
+                        { id: "a", text: "5", isCorrect: true },
+                        { id: "b", text: "10", isCorrect: false },
+                        { id: "c", text: "2.5", isCorrect: false },
+                    ]
+                },
+                {
+                    id: "a2",
+                    prompt: "Expand \\((x+3)(x-3)\\)",
+                    choices: [
+                        { id: "a", text: "\\(x^2 - 9\\)", isCorrect: true },
+                        { id: "b", text: "\\(x^2 + 9\\)", isCorrect: false },
+                        { id: "c", text: "\\(x^2 - 6x + 9\\)", isCorrect: false },
+                    ]
+                }
+            ]
+        },
+        {
+            id: "combinatorics",
+            title: "Combinatorics",
+            questions: [
+                {
+                    id: "c1",
+                    prompt: "How many ways can you arrange 3 books on a shelf?",
+                    choices: [
+                        { id: "a", text: "6", isCorrect: true },
+                        { id: "b", text: "3", isCorrect: false },
+                        { id: "c", text: "9", isCorrect: false },
+                    ]
+                },
+                {
+                    id: "c2",
+                    prompt: "Value of \\(5!\\)?",
+                    choices: [
+                        { id: "a", text: "120", isCorrect: true },
+                        { id: "b", text: "60", isCorrect: false },
+                        { id: "c", text: "100", isCorrect: false },
+                    ]
+                }
+            ]
+        }
+    ];
+}
 export const STORAGE_KEY_RESULTS = "quiz_results";
 export function saveResult(result) {
     const results = getResults();
@@ -106,5 +159,15 @@ export function getResults() {
     catch {
         return [];
     }
+}
+export function getHighScores() {
+    const results = getResults();
+    const highScores = new Map();
+    results.forEach(r => {
+        if (!highScores.has(r.quizId) || r.score > highScores.get(r.quizId).score) {
+            highScores.set(r.quizId, r);
+        }
+    });
+    return Array.from(highScores.values());
 }
 //# sourceMappingURL=storage.js.map
