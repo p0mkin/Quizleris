@@ -1,6 +1,8 @@
 import { QuizState, quiz, setQuiz } from "./state.js";
 import { questionContainer, answersContainer, statusContainer } from "./dom.js";
 import { startQuestionTimer, clearTimer } from "./timer.js";
+import { saveResult } from "./storage.js";
+import { renderStartMenu } from "./menu.js";
 // Render question prompt
 export function renderQuestion(q) {
     questionContainer.innerHTML = `
@@ -104,7 +106,7 @@ export function renderNextButton() {
         btn = document.createElement("button");
         btn.id = nextButtonId;
         btn.textContent = "Next Question";
-        btn.className = "answer-btn";
+        btn.className = "btn btn-primary";
         btn.style.marginTop = "8px";
         statusContainer.appendChild(btn);
     }
@@ -142,6 +144,17 @@ export function showResults() {
     const results = quiz.getResults();
     const totalMinutes = Math.floor(results.totalTime / 60000);
     const totalSeconds = Math.floor((results.totalTime % 60000) / 1000);
+    // Save result if student name exists
+    const studentName = localStorage.getItem("current_student_name");
+    if (studentName) {
+        saveResult({
+            name: studentName,
+            quizId: quiz.quiz.id,
+            score: results.score,
+            maxScore: results.total,
+            date: new Date().toISOString()
+        });
+    }
     // Hide quiz content
     questionContainer.style.display = "none";
     answersContainer.style.display = "none";
@@ -186,7 +199,10 @@ export function showResults() {
     })
         .join("")}
         </div>
-        <button id="restart-quiz-btn" class="answer-btn">Take Quiz Again</button>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="restart-quiz-btn" class="btn btn-primary">Take Quiz Again</button>
+            <button id="back-to-menu-btn" class="btn">Back to Menu</button>
+        </div>
     `;
     // Render LaTeX in results
     renderMathInElement(resultsContainer, {
@@ -204,6 +220,11 @@ export function showResults() {
         questionContainer.style.display = "block";
         answersContainer.style.display = "grid";
         statusContainer.style.display = "flex";
+    });
+    // Wire up back to menu button
+    document.getElementById("back-to-menu-btn").addEventListener("click", () => {
+        resultsContainer.remove();
+        renderStartMenu();
     });
 }
 // Inject badge styles

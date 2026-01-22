@@ -2,6 +2,8 @@ import type { Quiz, Question } from "./types.js";
 import { QuizState, quiz, setQuiz } from "./state.js";
 import { questionContainer, answersContainer, statusContainer } from "./dom.js";
 import { startQuestionTimer, clearTimer } from "./timer.js";
+import { saveResult } from "./storage.js";
+import { renderStartMenu } from "./menu.js";
 
 // Render question prompt
 export function renderQuestion(q: Question): void {
@@ -112,7 +114,7 @@ export function renderNextButton(): void {
         btn = document.createElement("button");
         btn.id = nextButtonId;
         btn.textContent = "Next Question";
-        btn.className = "answer-btn";
+        btn.className = "btn btn-primary";
         btn.style.marginTop = "8px";
         statusContainer.appendChild(btn);
     }
@@ -153,6 +155,18 @@ export function showResults(): void {
     const totalMinutes = Math.floor(results.totalTime / 60000);
     const totalSeconds = Math.floor((results.totalTime % 60000) / 1000);
 
+    // Save result if student name exists
+    const studentName = localStorage.getItem("current_student_name");
+    if (studentName) {
+        saveResult({
+            name: studentName,
+            quizId: quiz.quiz.id,
+            score: results.score,
+            maxScore: results.total,
+            date: new Date().toISOString()
+        });
+    }
+
     // Hide quiz content
     questionContainer.style.display = "none";
     answersContainer.style.display = "none";
@@ -183,10 +197,10 @@ export function showResults(): void {
         <div class="results-review">
             <h3>Review</h3>
             ${quiz.quiz.questions
-                .map((q, idx) => {
-                    const time = results.questionTimes[idx] ? Math.round(results.questionTimes[idx] / 1000) : 0;
-                    const correctChoice = q.choices.find((c) => c.isCorrect);
-                    return `
+            .map((q, idx) => {
+                const time = results.questionTimes[idx] ? Math.round(results.questionTimes[idx] / 1000) : 0;
+                const correctChoice = q.choices.find((c) => c.isCorrect);
+                return `
                     <div class="result-question-item">
                         <div class="result-question-header">
                             <strong>Question ${idx + 1}</strong>
@@ -196,10 +210,13 @@ export function showResults(): void {
                         <div class="result-question-answer">Correct Answer: ${correctChoice?.text || "N/A"}</div>
                     </div>
                 `;
-                })
-                .join("")}
+            })
+            .join("")}
         </div>
-        <button id="restart-quiz-btn" class="answer-btn">Take Quiz Again</button>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button id="restart-quiz-btn" class="btn btn-primary">Take Quiz Again</button>
+            <button id="back-to-menu-btn" class="btn">Back to Menu</button>
+        </div>
     `;
 
     // Render LaTeX in results
@@ -218,6 +235,12 @@ export function showResults(): void {
         questionContainer.style.display = "block";
         answersContainer.style.display = "grid";
         statusContainer.style.display = "flex";
+    });
+
+    // Wire up back to menu button
+    document.getElementById("back-to-menu-btn")!.addEventListener("click", () => {
+        resultsContainer!.remove();
+        renderStartMenu();
     });
 }
 

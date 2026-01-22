@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <!-- Basic page metadata -->
   <meta charset="UTF-8" />
@@ -10,78 +11,87 @@
   <link rel="stylesheet" href="style.css" />
 
   <!-- KaTeX CSS for LaTeX rendering -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
-    />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
 
-    <!-- KaTeX JS (we'll call this later from TypeScript-compiled JS) -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
-    ></script>
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"
-    ></script>
+  <!-- KaTeX JS (we'll call this later from TypeScript-compiled JS) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 
-    <!-- Tesseract.js for OCR -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"
-    ></script>
+  <!-- Tesseract.js for OCR -->
+  <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
 
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
   <script type="module" defer src="dist/app.js"></script>
 </head>
 
 <body>
-<div id="app-root">
-  <!-- Minimal static structure; TypeScript will fill this dynamically -->
+  <div id="app-root">
+    <!-- Minimal static structure; TypeScript will fill this dynamically -->
 
-  <header class="quiz-header">
-    <h1>Math Quiz</h1>
-    <button id="admin-toggle" class="admin-toggle-btn">Admin Mode</button>
-  </header>
+    <header class="quiz-header" style="display: none;">
+      <h1>Math Quiz</h1>
+      <button id="admin-toggle" class="btn">Admin Mode</button>
+    </header>
 
-  <main class="quiz-main">
-    <!-- Placeholder for question text (with LaTeX) -->
-    <section id="question-container">
-      <!-- TypeScript will inject the current question here -->
-    </section>
-
-    <!-- Placeholder for answer buttons -->
-    <section id="answers-container">
-      <!-- TypeScript will generate answer options here -->
-    </section>
-
-    <!-- Placeholder for score and status -->
-    <section id="status-container">
-      <!-- TypeScript will show score, feedback, etc. here -->
-    </section>
-  </main>
-
-  <!-- Admin panel (hidden by default) -->
-  <section id="admin-panel" class="admin-panel" style="display: none;">
-    <h2>Create/Edit Quiz</h2>
-    <div class="admin-form">
-      <label>
-        Quiz Title:
-        <input type="text" id="admin-quiz-title" placeholder="My Math Quiz" />
-      </label>
-      <div id="admin-questions-list"></div>
-      <div class="admin-question-actions">
-        <button id="admin-add-question" class="admin-btn">+ Add Question</button>
-        <button id="admin-scan-question" class="admin-btn">📷 Scan Question (OCR)</button>
-        <input type="file" id="admin-ocr-input" accept="image/*" style="display: none;" />
+    <section id="start-menu" class="start-menu">
+      <h1>Welcome to Quizleris</h1>
+      <p>Please select your role:</p>
+      <div class="menu-actions">
+        <button id="menu-btn-student" class="btn btn-primary">I'm Student</button>
+        <button id="menu-btn-admin" class="btn">I'm Admin</button>
+        <button id="menu-btn-dashboard" class="btn btn-secondary" style="background: rgba(255,255,255,0.1);">View
+          Dashboard</button>
       </div>
-      <div class="admin-actions">
-        <button id="admin-save" class="admin-btn admin-btn-primary">Save Quiz</button>
-        <button id="admin-cancel" class="admin-btn">Cancel</button>
+    </section>
+
+    <main class="quiz-main" style="display: none;">
+      <!-- Placeholder for question text (with LaTeX) -->
+      <section id="question-container">
+        <!-- TypeScript will inject the current question here -->
+      </section>
+
+      <!-- Placeholder for answer buttons -->
+      <section id="answers-container">
+        <!-- TypeScript will generate answer options here -->
+      </section>
+
+      <!-- Placeholder for score and status -->
+      <section id="status-container">
+        <!-- TypeScript will show score, feedback, etc. here -->
+      </section>
+    </main>
+
+    <section id="dashboard-view" class="dashboard-view" style="display: none;">
+      <h2>Results Dashboard</h2>
+      <div id="dashboard-content"></div>
+      <div class="dashboard-actions">
+        <button id="dashboard-close-btn" class="btn btn-primary">Back to Menu</button>
+        <button id="dashboard-clear-btn" class="btn btn-danger">Clear History</button>
       </div>
-      <div id="admin-share-code" class="admin-share" style="display: none;"></div>
-    </div>
-  </section>
-</div>
+    </section>
+
+    <!-- Admin panel (hidden by default) -->
+    <section id="admin-panel" class="admin-panel" style="display: none;">
+      <h2>Create/Edit Quiz</h2>
+      <div class="admin-form">
+        <label>
+          Quiz Title:
+          <input type="text" id="admin-quiz-title" placeholder="My Math Quiz" />
+        </label>
+        <div id="admin-questions-list"></div>
+        <div class="admin-question-actions">
+          <button id="admin-add-question" class="btn">+ Add Question</button>
+          <button id="admin-scan-question" class="btn">📷 Scan Question (OCR)</button>
+          <input type="file" id="admin-ocr-input" accept="image/*" style="display: none;" />
+        </div>
+        <div class="admin-actions">
+          <button id="admin-save" class="btn btn-primary">Save Quiz</button>
+          <button id="admin-cancel" class="btn">Cancel</button>
+        </div>
+        <div id="admin-share-code" class="admin-share" style="display: none;"></div>
+      </div>
+    </section>
+  </div>
 </body>
+
 </html>

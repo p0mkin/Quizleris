@@ -73,6 +73,11 @@ export function loadQuiz(): Quiz {
     }
 
     // Fallback: return a default demo quiz
+    // Fallback: return a default demo quiz
+    return getDemoQuiz();
+}
+
+export function getDemoQuiz(): Quiz {
     return {
         id: "demo",
         title: "Demo Quiz",
@@ -90,3 +95,31 @@ export function loadQuiz(): Quiz {
         ],
     };
 }
+
+// Result Tracking
+export interface QuizResult {
+    name: string;
+    quizId: string;
+    score: number;
+    maxScore: number;
+    date: string;
+}
+
+export const STORAGE_KEY_RESULTS = "quiz_results";
+
+export function saveResult(result: QuizResult): void {
+    const results = getResults();
+    results.push(result);
+    localStorage.setItem(STORAGE_KEY_RESULTS, JSON.stringify(results));
+}
+
+export function getResults(): QuizResult[] {
+    const data = localStorage.getItem(STORAGE_KEY_RESULTS);
+    if (!data) return [];
+    try {
+        return JSON.parse(data) as QuizResult[];
+    } catch {
+        return [];
+    }
+}
+

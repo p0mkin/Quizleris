@@ -84,8 +84,8 @@ export function renderAdminForm(): void {
         <textarea class="admin-question-prompt" data-qidx="${qIdx}">${q.prompt}</textarea>
       </label>
       <div class="admin-choices-list" data-qidx="${qIdx}"></div>
-      <button class="admin-add-choice-btn" data-qidx="${qIdx}">+ Add Choice</button>
-      <button class="admin-remove-question-btn" data-qidx="${qIdx}">Remove Question</button>
+      <button class="admin-add-choice-btn btn" data-qidx="${qIdx}">+ Add Choice</button>
+      <button class="admin-remove-question-btn btn btn-danger" data-qidx="${qIdx}">Remove Question</button>
     `;
         adminQuestionsList.appendChild(qDiv);
 
@@ -97,7 +97,9 @@ export function renderAdminForm(): void {
             choiceDiv.innerHTML = `
         <input type="radio" name="correct_${qIdx}" value="${cIdx}" ${choice.isCorrect ? "checked" : ""} />
         <input type="text" class="admin-choice-text" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" />
-        <button class="admin-remove-choice-btn" data-qidx="${qIdx}" data-cidx="${cIdx}">Remove</button>
+        <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-qidx="${qIdx}" data-cidx="${cIdx}" title="Delete choice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
       `;
             choicesList.appendChild(choiceDiv);
         });
@@ -115,6 +117,7 @@ export function renderAdminForm(): void {
 
         qDiv.querySelector(`.admin-remove-question-btn[data-qidx="${qIdx}"]`)!.addEventListener("click", () => {
             if (!adminQuiz) return;
+            if (!confirm("Are you sure you want to delete this specific question?")) return;
             adminQuiz.questions.splice(qIdx, 1);
             renderAdminForm();
         });
@@ -123,9 +126,16 @@ export function renderAdminForm(): void {
         choicesList.querySelectorAll(`.admin-remove-choice-btn`).forEach((btn) => {
             btn.addEventListener("click", (e) => {
                 if (!adminQuiz) return;
-                const target = e.target as HTMLButtonElement;
+                const target = e.currentTarget as HTMLButtonElement; // use currentTarget to get the button, not inner SVG
                 const qIdx = parseInt(target.dataset.qidx!);
                 const cIdx = parseInt(target.dataset.cidx!);
+
+                // Optional: Prevent leaving less than 2 choices? The user validator check is at save time.
+                // But preventing it here is nicer.
+                // The user only asked for "delete individual choice".
+                // I'll add the confirm.
+                if (!confirm("Remove this choice?")) return;
+
                 adminQuiz!.questions[qIdx].choices.splice(cIdx, 1);
                 renderAdminForm();
             });

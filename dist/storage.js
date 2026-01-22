@@ -69,6 +69,10 @@ export function loadQuiz() {
             return loaded;
     }
     // Fallback: return a default demo quiz
+    // Fallback: return a default demo quiz
+    return getDemoQuiz();
+}
+export function getDemoQuiz() {
     return {
         id: "demo",
         title: "Demo Quiz",
@@ -85,5 +89,22 @@ export function loadQuiz() {
             },
         ],
     };
+}
+export const STORAGE_KEY_RESULTS = "quiz_results";
+export function saveResult(result) {
+    const results = getResults();
+    results.push(result);
+    localStorage.setItem(STORAGE_KEY_RESULTS, JSON.stringify(results));
+}
+export function getResults() {
+    const data = localStorage.getItem(STORAGE_KEY_RESULTS);
+    if (!data)
+        return [];
+    try {
+        return JSON.parse(data);
+    }
+    catch {
+        return [];
+    }
 }
 //# sourceMappingURL=storage.js.map
