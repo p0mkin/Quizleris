@@ -7,6 +7,7 @@ export class QuizState {
         this.startTime = Date.now();
         this.questionStartTimes = [];
         this.questionAnswerTimes = [];
+        this.userChoices = [];
         this.quiz = quiz;
         this.questionStartTimes[0] = Date.now();
     }
@@ -33,6 +34,7 @@ export class QuizState {
         // Track time for this question
         const questionStart = this.questionStartTimes[this.currentIndex] || this.startTime;
         this.questionAnswerTimes[this.currentIndex] = Date.now() - questionStart;
+        this.userChoices[this.currentIndex] = choiceId;
         return correct;
     }
     nextQuestion() {
@@ -49,6 +51,7 @@ export class QuizState {
             percentage: Math.round((this.score / this.quiz.questions.length) * 100),
             totalTime: this.totalTime,
             questionTimes: this.questionAnswerTimes,
+            choices: this.userChoices,
         };
     }
 }

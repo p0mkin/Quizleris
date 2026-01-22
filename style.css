@@ -27,7 +27,9 @@ body {
     color: var(--text);
     font-family: var(--font);
     display: flex;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
     padding: 32px;
 }
 
@@ -259,12 +261,76 @@ body {
 
 .admin-form label {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     color: var(--muted);
     font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+/* Segmented Control */
+.segmented-control {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 2px;
+    margin-top: 8px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.segment-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 10px;
+    font-family: var(--font);
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.85rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.segment-btn.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.segment-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+}
+
+.segment-btn::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 25%;
+    height: 50%;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.segment-btn:last-child::after,
+.segment-btn.active::after,
+.segment-btn.active+.segment-btn::after {
+    display: none;
 }
 
 .admin-form input[type="text"],
+.admin-form input[type="number"],
+.admin-form select,
 .admin-form textarea {
     width: 100%;
     background: var(--bg);
@@ -474,10 +540,117 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 400px;
+    gap: 24px;
     text-align: center;
-    padding: 20px;
-    animation: fadeIn 0.5s ease-out;
+    min-height: 40vh;
+    padding: 60px 20px;
+}
+
+/* Join Quiz Card */
+.join-card {
+    width: 100%;
+    max-width: 460px;
+    margin: 10px auto;
+    padding: 1.8rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+    text-align: center;
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.join-card h1 {
+    font-size: 1.8rem;
+    margin-bottom: 1.2rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+}
+
+.join-quiz-info {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 16px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.join-quiz-info:hover {
+    transform: scale(1.02);
+}
+
+.join-quiz-info h2 {
+    font-size: 1.4rem;
+    margin: 0 0 4px 0;
+    color: #fff;
+    font-weight: 700;
+}
+
+.join-quiz-info p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.join-input-group {
+    text-align: left;
+    margin-bottom: 1.8rem;
+}
+
+.join-label {
+    display: block;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.join-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 1rem 1.2rem;
+    color: #fff;
+    font-size: 1.1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.join-input:focus {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.2);
+}
+
+.join-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-xl {
+    padding: 1rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    border-radius: 14px !important;
 }
 
 .start-menu h1 {
@@ -522,13 +695,15 @@ body {
 
 /* Student Input Form (Hidden by default) */
 .student-form-container {
-    max-width: 400px;
+    max-width: 450px;
     width: 100%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 16px;
     text-align: left;
+    padding: 0 20px;
+    /* Add padding to prevent edge touching */
 }
 
 .student-form-container label {
@@ -600,11 +775,30 @@ body {
     border-radius: var(--radius);
 }
 
-display: flex;
-justify-content: center;
-gap: 12px;
-}
-
 .text-danger {
     color: var(--danger) !important;
+}
+
+.text-success {
+    color: var(--success) !important;
+}
+
+.detail-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(800px, 95vw);
+    max-height: 90vh;
+    z-index: 2000;
+    box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+    overflow-y: auto;
+    background: #1e293b;
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius);
+}
+
+.incorrect-bg {
+    background: rgba(248, 113, 113, 0.05);
 }

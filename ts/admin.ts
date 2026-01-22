@@ -4,8 +4,7 @@ import { getRequiredElement } from "./dom.js";
 import { generateQuizId, saveQuizToStorage } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
-import { initializeQuiz } from "./render.js";
-// import { renderDashboard } from "./dashboard.js"; // REMOVED
+import { t, updatePageLanguage } from "./i18n.js";
 
 // Admin UI state
 let adminMode = false;
@@ -27,16 +26,15 @@ let adminCancelBtn: HTMLButtonElement;
 let adminShareCode: HTMLElement;
 let adminTimerMode: HTMLSelectElement;
 let adminTimerLimit: HTMLInputElement;
+let adminShowResultsValue: HTMLInputElement;
+let adminResultGroup: HTMLElement;
 
-// Initialize admin DOM refs (call after DOM is ready)
 // Callbacks
 let goHome: () => void = () => { };
-let goDashboard: () => void = () => { };
 
 // Initialize admin DOM refs and events
-export function setupAdmin(callbacks: { onHome: () => void, onDashboard: () => void }): void {
+export function setupAdmin(callbacks: { onHome: () => void }): void {
     goHome = callbacks.onHome;
-    goDashboard = callbacks.onDashboard;
 
     adminToggle = getRequiredElement("admin-toggle") as HTMLButtonElement;
     adminPanel = getRequiredElement("admin-panel");
@@ -53,6 +51,11 @@ export function setupAdmin(callbacks: { onHome: () => void, onDashboard: () => v
     adminShareCode = getRequiredElement("admin-share-code");
     adminTimerMode = getRequiredElement("admin-timer-mode") as HTMLSelectElement;
     adminTimerLimit = getRequiredElement("admin-timer-limit") as HTMLInputElement;
+    adminShowResultsValue = getRequiredElement("admin-show-results-value") as HTMLInputElement;
+    adminResultGroup = getRequiredElement("admin-result-visibility-group");
+
+    // Segmented control events
+    setupSegmentedControl();
 
     // Hide admin toggle by default (only show if admin access allowed)
     if (!isAdminAccessAllowed()) {
@@ -72,7 +75,7 @@ export function toggleAdminMode(): void {
 
     adminMode = !adminMode;
     adminPanel.style.display = adminMode ? "block" : "none";
-    adminToggle.textContent = adminMode ? "Player Mode" : "Admin Mode";
+    adminToggle.textContent = adminMode ? t('admin.playerMode') : t('admin.adminMode');
 
     if (adminMode) {
         // Initialize admin quiz from current quiz or create new
@@ -81,7 +84,7 @@ export function toggleAdminMode(): void {
         } else {
             adminQuiz = {
                 id: generateQuizId(),
-                title: "New Quiz",
+                title: t('admin.newQuiz'),
                 questions: [],
             };
         }
@@ -104,16 +107,24 @@ export function renderAdminForm(): void {
         adminTimerLimit.value = String(adminQuiz.timerConfig.limitSeconds);
     }
 
+    // Show results setting
+    const currentVal = adminQuiz.showDetailedResults !== false ? "detailed" : "score";
+    adminShowResultsValue.value = currentVal;
+    updateSegmentedUI(currentVal);
+
     // Toggle time limit visibility based on mode
     try {
         updateTimerLimitVisibility();
     } catch (e) { console.error("Timer vis error", e); }
 
+    // Ensure localized strings are up to date
+    updatePageLanguage();
+
     adminTimerMode.onchange = () => {
         try {
             updateTimerLimitVisibility();
         } catch (e) {
-            alert("Timer update error: " + e);
+            alert(t('admin.timerUpdateError') + ": " + e);
         }
     };
 
@@ -123,14 +134,14 @@ export function renderAdminForm(): void {
         const qDiv = document.createElement("div");
         qDiv.className = "admin-question-item";
         qDiv.innerHTML = `
-      <h3>Question ${qIdx + 1}</h3>
+      <h3>${t('admin.question')} ${qIdx + 1}</h3>
       <label>
-        Prompt (LaTeX):
+        ${t('admin.prompt')}:
         <textarea class="admin-question-prompt" data-qidx="${qIdx}">${q.prompt}</textarea>
       </label>
       <div class="admin-choices-list" data-qidx="${qIdx}"></div>
-      <button class="admin-add-choice-btn btn" data-qidx="${qIdx}">+ Add Choice</button>
-      <button class="admin-remove-question-btn btn btn-danger" data-qidx="${qIdx}">Remove Question</button>
+      <button class="admin-add-choice-btn btn" data-qidx="${qIdx}">+ ${t('admin.addChoice')}</button>
+      <button class="admin-remove-question-btn btn btn-danger" data-qidx="${qIdx}">${t('admin.removeQuestion')}</button>
     `;
         adminQuestionsList.appendChild(qDiv);
 
@@ -142,7 +153,7 @@ export function renderAdminForm(): void {
             choiceDiv.innerHTML = `
         <input type="radio" name="correct_${qIdx}" value="${cIdx}" ${choice.isCorrect ? "checked" : ""} />
         <input type="text" class="admin-choice-text" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" />
-        <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-qidx="${qIdx}" data-cidx="${cIdx}" title="Delete choice">
+        <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-qidx="${qIdx}" data-cidx="${cIdx}" title="${t('admin.removeChoice')}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
       `;
@@ -166,7 +177,7 @@ export function renderAdminForm(): void {
 
         qDiv.querySelector(`.admin-remove-question-btn[data-qidx="${qIdx}"]`)!.addEventListener("click", () => {
             if (!adminQuiz) return;
-            if (!confirm("Are you sure you want to delete this specific question?")) return;
+            if (!confirm(t('admin.confirmRemoveQuestion'))) return;
 
             // CRITICAL: Sync current state from DOM before deleting to prevent data loss
             updateQuizFromDOM();
@@ -183,7 +194,7 @@ export function renderAdminForm(): void {
                 const qIdx = parseInt(target.dataset.qidx!);
                 const cIdx = parseInt(target.dataset.cidx!);
 
-                if (!confirm("Remove this choice?")) return;
+                if (!confirm(t('admin.confirmRemoveChoice'))) return;
 
                 // Sync state before modifying
                 updateQuizFromDOM();
@@ -242,13 +253,16 @@ export function saveAdminQuiz(): void {
     if (!adminQuiz) return;
 
     // Collect form data
-    adminQuiz.title = adminQuizTitle.value.trim() || "Untitled Quiz";
+    adminQuiz.title = adminQuizTitle.value.trim() || t('admin.untitledQuiz');
 
     // Save timer config
     adminQuiz.timerConfig = {
         mode: adminTimerMode.value as any,
         limitSeconds: parseInt(adminTimerLimit.value) || 30
     };
+
+    // Save show results toggle
+    adminQuiz.showDetailedResults = adminShowResultsValue.value === "detailed";
 
     adminQuestionsList.querySelectorAll(".admin-question-prompt").forEach((textarea) => {
         const qIdx = parseInt((textarea as HTMLElement).dataset.qidx!);
@@ -263,21 +277,21 @@ export function saveAdminQuiz(): void {
 
     // Validate
     if (adminQuiz.questions.length === 0) {
-        alert("Add at least one question!");
+        alert(t('admin.errorNoQuestions'));
         return;
     }
 
     for (const q of adminQuiz.questions) {
         if (!q.prompt.trim()) {
-            alert("All questions must have a prompt!");
+            alert(t('admin.errorNoPrompt'));
             return;
         }
         if (q.choices.length < 2) {
-            alert("Each question needs at least 2 choices!");
+            alert(t('admin.errorNoChoices'));
             return;
         }
         if (!q.choices.some((c) => c.isCorrect)) {
-            alert("Each question needs at least one correct answer!");
+            alert(t('admin.errorNoCorrect'));
             return;
         }
     }
@@ -289,18 +303,61 @@ export function saveAdminQuiz(): void {
     const shareCode = btoa(JSON.stringify(adminQuiz));
     const shareUrl = `${window.location.origin}${window.location.pathname}?quiz=${shareCode}`;
 
+    const dashboardUrl = `${window.location.origin}${window.location.pathname}?dashboard=${adminQuiz.id}`;
+
     adminShareCode.style.display = "block";
     adminShareCode.innerHTML = `
-    <strong>Quiz saved!</strong><br>
-    Share URL: <code>${shareUrl}</code><br>
-    Quiz ID: <code>${adminQuiz.id}</code>
+    <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); padding: 15px; border-radius: 8px; margin-top: 15px;">
+      <strong style="color: #4CAF50;">✓ ${t('admin.saveSuccess')}</strong><br><br>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">${t('admin.studentUrl')}:</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" readonly value="${shareUrl}" id="share-url-input" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--bg); color: var(--text); font-size: 0.9rem;" />
+          <button id="copy-share-url" class="btn btn-secondary" style="white-space: nowrap;">📋 ${t('admin.copy')}</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">${t('admin.dashboardUrl')}:</label>
+        <div style="display: flex; gap: 10px;">
+          <input type="text" readonly value="${dashboardUrl}" id="dash-url-input" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--bg); color: var(--text); font-size: 0.9rem;" />
+          <button id="copy-dash-url" class="btn btn-secondary" style="white-space: nowrap;">📋 ${t('admin.copy')}</button>
+        </div>
+      </div>
+
+      <label style="display: block; margin-bottom: 5px; font-weight: bold;">${t('admin.quizId')}:</label>
+      <code style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; display: inline-block;">${adminQuiz.id}</code>
+    </div>
   `;
 
-    // Reload player mode with new quiz
-    setTimeout(() => {
-        toggleAdminMode();
-        initializeQuiz(adminQuiz!);
-    }, 2000);
+    // Wire up share copy button
+    const copyBtn = document.getElementById('copy-share-url');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', () => {
+            const input = document.getElementById('share-url-input') as HTMLInputElement;
+            input.select();
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                copyBtn.textContent = '✓ Copied!';
+                setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
+            });
+        });
+    }
+
+    // Wire up dashboard copy button
+    const dashCopyBtn = document.getElementById('copy-dash-url');
+    if (dashCopyBtn) {
+        dashCopyBtn.addEventListener('click', () => {
+            const input = document.getElementById('dash-url-input') as HTMLInputElement;
+            input.select();
+            navigator.clipboard.writeText(dashboardUrl).then(() => {
+                dashCopyBtn.textContent = '✓ Copied!';
+                setTimeout(() => { dashCopyBtn.textContent = '📋 Copy'; }, 2000);
+            });
+        });
+    }
+
+    // NO AUTO-CLOSE - keep admin panel open for user convenience
 }
 
 // Handle OCR file upload
@@ -415,12 +472,12 @@ function setupAdminEventsInternal(): void {
                     // Ensure ID exists
                     if (!adminQuiz!.id) adminQuiz!.id = crypto.randomUUID();
                     renderAdminForm();
-                    alert("Quiz imported successfully!");
+                    alert(t('admin.importSuccess'));
                 } else {
-                    alert("Invalid quiz JSON.");
+                    alert(t('admin.importInvalid'));
                 }
             } catch (err) {
-                alert("Error parsing JSON");
+                alert(t('admin.importError'));
             }
         };
         reader.readAsText(file);
@@ -428,7 +485,9 @@ function setupAdminEventsInternal(): void {
     });
 
     adminCancelBtn.addEventListener("click", () => {
-        toggleAdminMode();
+        if (confirm(t('admin.confirmCancel'))) {
+            toggleAdminMode();
+        }
     });
 
     const backBtn = document.getElementById("admin-btn-back");
@@ -444,14 +503,26 @@ function setupAdminEventsInternal(): void {
             goHome();
         });
     }
-
-    const dashBtn = document.getElementById("admin-btn-dashboard");
-    if (dashBtn) {
-        dashBtn.addEventListener("click", () => {
-            if (adminMode) toggleAdminMode(); // Close admin panel
-            goDashboard();
-        });
-    }
 }
 
+function setupSegmentedControl(): void {
+    const buttons = adminResultGroup.querySelectorAll(".segment-btn");
+    buttons.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const val = btn.getAttribute("data-value") || "detailed";
+            adminShowResultsValue.value = val;
+            updateSegmentedUI(val);
+        });
+    });
+}
 
+function updateSegmentedUI(value: string): void {
+    const buttons = adminResultGroup.querySelectorAll(".segment-btn");
+    buttons.forEach(btn => {
+        if (btn.getAttribute("data-value") === value) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+}

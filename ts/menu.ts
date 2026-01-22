@@ -1,4 +1,6 @@
 import { getRequiredElement } from "./dom.js";
+import type { Quiz } from "./types.js";
+import { t, updatePageLanguage } from "./i18n.js";
 
 // DOM Elements
 let startMenu: HTMLElement;
@@ -6,16 +8,15 @@ let quizHeader: HTMLElement;
 let quizMain: HTMLElement;
 let studentBtn: HTMLButtonElement;
 let adminBtn: HTMLButtonElement;
-let dashboardBtn: HTMLButtonElement;
+let isStudentMenuOpen = false;
 
-export function setupMenu(callbacks: { onAdmin: () => void, onDashboard: () => void }): void {
+export function setupMenu(callbacks: { onAdmin: () => void }): void {
     startMenu = getRequiredElement("start-menu");
     quizHeader = document.querySelector(".quiz-header") as HTMLElement;
     quizMain = document.querySelector(".quiz-main") as HTMLElement;
 
     studentBtn = getRequiredElement("menu-btn-student") as HTMLButtonElement;
     adminBtn = getRequiredElement("menu-btn-admin") as HTMLButtonElement;
-    dashboardBtn = getRequiredElement("menu-btn-dashboard") as HTMLButtonElement;
 
     adminBtn.onclick = () => {
         try {
@@ -26,14 +27,14 @@ export function setupMenu(callbacks: { onAdmin: () => void, onDashboard: () => v
 
     studentBtn.onclick = () => {
         try {
+            isStudentMenuOpen = true;
             handleStudentClick();
         } catch (e) { alert("Student Click Error: " + e); }
     };
+}
 
-    dashboardBtn.onclick = () => {
-        startMenu.style.display = "none";
-        callbacks.onDashboard();
-    };
+export function isStudentViewActive(): boolean {
+    return isStudentMenuOpen;
 }
 
 export function renderStartMenu(): void {
@@ -47,100 +48,190 @@ export function renderStartMenu(): void {
     startMenu.style.display = "flex";
     quizHeader.style.display = "none";
     quizMain.style.display = "none";
+
+    // Clear student form if it exists
+    const container = startMenu.querySelector(".student-form-container");
+    if (container) container.remove();
+    isStudentMenuOpen = false;
+}
+
+export function renderStudentJoin(quizToJoin: Quiz): void {
+    if (!startMenu) return;
+
+    // Hide everything else in menu
+    const welcomeH1 = startMenu.querySelector('h1') as HTMLElement;
+    const welcomeP = startMenu.querySelector('p') as HTMLElement;
+    const menuActions = startMenu.querySelector(".menu-actions") as HTMLElement;
+    const existingForm = startMenu.querySelector(".student-form-container");
+
+    if (welcomeH1) welcomeH1.style.display = "none";
+    if (welcomeP) welcomeP.style.display = "none";
+    if (menuActions) menuActions.style.display = "none";
+    if (existingForm) (existingForm as HTMLElement).style.display = "none";
+
+    let joinContainer = startMenu.querySelector(".student-join-container") as HTMLElement;
+    if (!joinContainer) {
+        joinContainer = document.createElement("div");
+        joinContainer.className = "student-form-container student-join-container";
+        startMenu.appendChild(joinContainer);
+    }
+
+    joinContainer.style.display = "flex";
+
+    // Time information
+    let timeInfo = t('admin.timerNone');
+    if (quizToJoin.timerConfig && quizToJoin.timerConfig.mode !== "none") {
+        const limit = quizToJoin.timerConfig.limitSeconds;
+        if (quizToJoin.timerConfig.mode === "question") {
+            timeInfo = `${limit}s / ${t('admin.timerPerQuestion').toLowerCase()}`;
+        } else {
+            timeInfo = `${Math.floor(limit / 60)}m ${limit % 60}s ${t('admin.timerWholeQuiz').toLowerCase()}`;
+        }
+    }
+
+    joinContainer.innerHTML = `
+        <div class="join-card">
+             <div style="margin-bottom: 24px;">
+                <span style="background: var(--accent); color: #000; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">
+                    ${t('join.joinQuiz')}
+                </span>
+             </div>
+             <div class="join-quiz-info">
+                <h2 style="font-size: 2.2rem; margin-bottom: 12px;">${quizToJoin.title}</h2>
+                <p style="font-size: 1.1rem; color: var(--muted);">${quizToJoin.questions.length} ${t('join.questions')} | ${timeInfo}</p>
+             </div>
+             
+             <div class="join-input-group">
+                <label for="join-student-name" class="join-label">${t('join.yourName')}</label>
+                <input type="text" id="join-student-name" class="join-input" placeholder="${t('join.namePlaceholder')}">
+             </div>
+             
+             <div class="join-actions">
+                <button id="join-start-btn" class="btn btn-primary btn-xl">${t('join.startBtn')}</button>
+                <button id="join-back-btn" class="btn btn-secondary">${t('join.backBtn')}</button>
+             </div>
+        </div>
+    `;
+
+    document.getElementById("join-start-btn")!.onclick = () => {
+        const nameInput = document.getElementById("join-student-name") as HTMLInputElement;
+        const name = nameInput.value.trim() || "Anonymous";
+        startStudentQuizDirect(name, quizToJoin);
+    };
+
+    document.getElementById("join-back-btn")!.onclick = () => {
+        joinContainer.style.display = "none";
+        if (welcomeH1) welcomeH1.style.display = "block";
+        if (welcomeP) welcomeP.style.display = "block";
+        if (menuActions) menuActions.style.display = "flex";
+    };
 }
 
 
 
 // Student form handling
-function handleStudentClick(): void {
-    // Hide buttons, show student form
+export function handleStudentClick(): void {
+    // Hide welcome text and buttons, show student form
+    const welcomeH1 = startMenu.querySelector('h1') as HTMLElement;
+    const welcomeP = startMenu.querySelector('p') as HTMLElement;
     const menuActions = startMenu.querySelector(".menu-actions") as HTMLElement;
+
+    if (welcomeH1) welcomeH1.style.display = "none";
+    if (welcomeP) welcomeP.style.display = "none";
     menuActions.style.display = "none";
 
     let formContainer = startMenu.querySelector(".student-form-container");
-    if (!formContainer) {
-        formContainer = document.createElement("div");
-        formContainer.className = "student-form-container";
-        formContainer.innerHTML = `
-            <div>
-                <label>Your Name (optional)</label>
-                <input type="text" id="student-name" class="admin-form" placeholder="Enter name to track results">
+    if (formContainer) {
+        formContainer.remove();
+    }
+
+    formContainer = document.createElement("div");
+    formContainer.className = "student-form-container";
+    formContainer.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <label data-i18n="student.nameLabel" style="display: block; margin-bottom: 8px; font-weight: 500;">Your Name (optional)</label>
+                <input type="text" id="student-name" class="admin-form" data-i18n-placeholder="student.namePlaceholder" placeholder="Enter name to track results">
             </div>
             
-            <div style="margin: 16px 0;">
-                <label style="margin-bottom:8px; display:block;">Try a Premade Quiz:</label>
-                <div id="premade-list" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;"></div>
+            <div style="margin: 20px 0;">
+                <label style="margin-bottom:12px; display:block; font-weight: 500;" data-i18n="student.premadeLabel">Try a Premade Quiz:</label>
+                <div id="premade-list" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;"></div>
             </div>
 
-            <div>
-                <label>Or Enter Quiz Code / ID</label>
-                <input type="text" id="quiz-id-input" class="admin-form" placeholder="demo">
+            <div style="margin-top: 20px;">
+                <label data-i18n="student.quizIdLabel" style="display: block; margin-bottom: 8px; font-weight: 500;">Or Enter Quiz Code / ID</label>
+                <input type="text" id="quiz-id-input" class="admin-form" data-i18n-placeholder="student.quizIdPlaceholder" placeholder="demo">
             </div>
-            <div style="margin-top: 16px; display: flex; gap: 10px;">
-                <button id="start-quiz-btn" class="btn btn-primary">Start Quiz</button>
-                <button id="back-menu-btn" class="btn">Back</button>
+            <div style="margin-top: 32px; display: flex; gap: 12px;">
+                <button id="start-quiz-btn" class="btn btn-primary" data-i18n="student.startBtn" style="flex: 1; padding: 12px;">Start Quiz</button>
+                <button id="back-menu-btn" class="btn" data-i18n="student.backBtn" style="flex: 1; padding: 12px;">Back</button>
             </div>
         `;
-        // We reuse .admin-form input styles or add specific ones
-        // Just adjusting the input class to match existing styles if possible
-        const inputs = formContainer.querySelectorAll("input");
-        inputs.forEach(inp => {
-            inp.style.width = "100%";
-            inp.style.padding = "10px";
-            inp.style.borderRadius = "12px";
-            inp.style.border = "1px solid rgba(255,255,255,0.1)";
-            inp.style.background = "var(--bg)";
-            inp.style.color = "var(--text)";
-            inp.style.marginBottom = "4px";
+    // We reuse .admin-form input styles or add specific ones
+    // Just adjusting the input class to match existing styles if possible
+    const inputs = formContainer.querySelectorAll("input");
+    inputs.forEach(inp => {
+        inp.style.width = "100%";
+        inp.style.padding = "10px";
+        inp.style.borderRadius = "12px";
+        inp.style.border = "1px solid rgba(255,255,255,0.1)";
+        inp.style.background = "var(--bg)";
+        inp.style.color = "var(--text)";
+        inp.style.marginBottom = "4px";
+    });
+
+    startMenu.appendChild(formContainer);
+
+    // Ensure translations are applied immediately after creation
+    updatePageLanguage();
+
+    // Wire up buttons
+    formContainer.querySelector("#back-menu-btn")!.addEventListener("click", () => {
+        const welcomeH1 = startMenu.querySelector('h1') as HTMLElement;
+        const welcomeP = startMenu.querySelector('p') as HTMLElement;
+
+        (formContainer as HTMLElement).style.display = "none";
+        if (welcomeH1) welcomeH1.style.display = "block";
+        if (welcomeP) welcomeP.style.display = "block";
+        menuActions.style.display = "flex";
+        isStudentMenuOpen = false;
+    });
+
+    formContainer.querySelector("#start-quiz-btn")!.addEventListener("click", () => {
+        const nameInput = document.getElementById("student-name") as HTMLInputElement;
+        const quizInput = document.getElementById("quiz-id-input") as HTMLInputElement;
+        startStudentQuiz(nameInput.value, quizInput.value);
+    });
+
+    // Populate premade quizzes
+    const premadeList = formContainer.querySelector("#premade-list");
+    if (premadeList) {
+        getPremadeQuizzes().forEach(q => {
+            const btn = document.createElement("button");
+            btn.className = "btn";
+            btn.style.fontSize = "0.9rem";
+            btn.style.padding = "8px 12px";
+            btn.style.background = "rgba(255,255,255,0.05)";
+            btn.textContent = q.title;
+            btn.onclick = () => {
+                const nameInput = document.getElementById("student-name") as HTMLInputElement;
+                // We load this quiz directly, bypassing ID lookup if possible, 
+                // OR we rely on ID lookup if we make storage support it.
+                // But getPremadeQuizzes returns the object. 
+                // Let's modify startStudentQuiz to accept an optional object, or just handle it here.
+
+                // Easiest: Pass the object directly to a new overload or handle logic here.
+                // Let's call a helper or modify startStudentQuiz to take (name, id | object).
+                // For now, I'll just set the inputs and click start? No, ID might not work if it's "algebra" and not saved.
+                // Actually, startStudentQuiz logic tries to load from storage.
+                // I should probably save these premade quizzes to storage on first load? 
+                // OR separate the "Start with Quiz Object" logic.
+
+                // Let's create a direct start function or modify startStudentQuiz.
+                startStudentQuizDirect(nameInput.value, q);
+            };
+            premadeList.appendChild(btn);
         });
-
-        startMenu.appendChild(formContainer);
-
-        // Wire up buttons
-        formContainer.querySelector("#back-menu-btn")!.addEventListener("click", () => {
-            (formContainer as HTMLElement).style.display = "none";
-            menuActions.style.display = "flex";
-        });
-
-        formContainer.querySelector("#start-quiz-btn")!.addEventListener("click", () => {
-            const nameInput = document.getElementById("student-name") as HTMLInputElement;
-            const quizInput = document.getElementById("quiz-id-input") as HTMLInputElement;
-            startStudentQuiz(nameInput.value, quizInput.value);
-        });
-
-        // Populate premade quizzes
-        const premadeList = formContainer.querySelector("#premade-list");
-        if (premadeList) {
-            getPremadeQuizzes().forEach(q => {
-                const btn = document.createElement("button");
-                btn.className = "btn";
-                btn.style.fontSize = "0.9rem";
-                btn.style.padding = "8px 12px";
-                btn.style.background = "rgba(255,255,255,0.05)";
-                btn.textContent = q.title;
-                btn.onclick = () => {
-                    const nameInput = document.getElementById("student-name") as HTMLInputElement;
-                    // We load this quiz directly, bypassing ID lookup if possible, 
-                    // OR we rely on ID lookup if we make storage support it.
-                    // But getPremadeQuizzes returns the object. 
-                    // Let's modify startStudentQuiz to accept an optional object, or just handle it here.
-
-                    // Easiest: Pass the object directly to a new overload or handle logic here.
-                    // Let's call a helper or modify startStudentQuiz to take (name, id | object).
-                    // For now, I'll just set the inputs and click start? No, ID might not work if it's "algebra" and not saved.
-                    // Actually, startStudentQuiz logic tries to load from storage.
-                    // I should probably save these premade quizzes to storage on first load? 
-                    // OR separate the "Start with Quiz Object" logic.
-
-                    // Let's create a direct start function or modify startStudentQuiz.
-                    startStudentQuizDirect(nameInput.value, q);
-                };
-                premadeList.appendChild(btn);
-            });
-        }
-
-    } else {
-        (formContainer as HTMLElement).style.display = "flex";
     }
 }
 

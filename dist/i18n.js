@@ -1,0 +1,306 @@
+// Internationalization (i18n) system for Lithuanian and English
+const translations = {
+    lt: {
+        // Start Menu
+        'app.title': 'Quizleris',
+        'menu.welcome': 'Sveiki atvykę į Quizleris',
+        'menu.selectRole': 'Pasirinkite savo vaidmenį:',
+        'menu.student': 'Esu Mokinys',
+        'menu.admin': 'Esu Administratorius',
+        'menu.dashboard': 'Peržiūrėti Rezultatus',
+        // Student Form
+        'student.nameLabel': 'Jūsų vardas (neprivaloma)',
+        'student.namePlaceholder': 'Įveskite vardą rezultatų sekimui',
+        'student.premadeLabel': 'Išbandykite paruoštą testą:',
+        'student.quizIdLabel': 'Arba įveskite testo kodą / ID',
+        'student.quizIdPlaceholder': 'demo',
+        'student.startBtn': 'Pradėti testą',
+        'student.backBtn': 'Atgal',
+        // Admin Panel
+        'admin.title': 'Sukurti/Redaguoti testą',
+        'admin.dashboard': 'Rezultatai',
+        'admin.backToMenu': 'Atgal į meniu',
+        'admin.quizTitle': 'Testo pavadinimas:',
+        'admin.quizTitlePlaceholder': 'Mano matematikos testas',
+        'admin.timerMode': 'Laikmačio režimas:',
+        'admin.timerPerQuestion': 'Laikas kiekvienam klausimui',
+        'admin.timerWholeQuiz': 'Laikas visam testui',
+        'admin.timerNone': 'Be laikmačio (Chronometras)',
+        'admin.timeLimit': 'Laiko limitas (sekundės):',
+        'admin.addQuestion': '+ Pridėti klausimą',
+        'admin.scanQuestion': '📷 Nuskaityti klausimą (OCR)',
+        'admin.saveQuiz': 'Išsaugoti testą',
+        'admin.exportJson': 'Eksportuoti JSON',
+        'admin.importJson': 'Importuoti JSON',
+        'admin.cancel': 'Atšaukti',
+        'res_vis_label': 'Rezultato matomumas:',
+        'res_vis_det': 'Išsami peržiūra (klausimai ir atsakymai)',
+        'res_vis_sco': 'Tik galutinis balas',
+        'admin.question': 'Klausimas',
+        'admin.promptLabel': 'Klausimas (LaTeX):',
+        'admin.addChoice': '+ Pridėti pasirinkimą',
+        'admin.removeQuestion': 'Pašalinti klausimą',
+        'admin.removeChoice': 'Ištrinti pasirinkimą',
+        'admin.quizSaved': 'Testas išsaugotas!',
+        'admin.shareUrl': 'Dalintis nuoroda:',
+        'admin.quizId': 'Testo ID:',
+        'admin.copyLink': 'Kopijuoti nuorodą',
+        'admin.closePreview': 'Uždaryti ir peržiūrėti',
+        // Alerts
+        'alert.deleteQuestion': 'Ar tikrai norite ištrinti šį klausimą?',
+        'alert.deleteChoice': 'Pašalinti šį pasirinkimą?',
+        'alert.addOneQuestion': 'Pridėkite bent vieną klausimą!',
+        'alert.allQuestionsPrompt': 'Visi klausimai turi turėti klausimą!',
+        'alert.twoChoicesMin': 'Kiekvienas klausimas turi turėti bent 2 pasirinkimus!',
+        'alert.oneCorrectAnswer': 'Kiekvienas klausimas turi turėti bent vieną teisingą atsakymą!',
+        'alert.quizNotFound': 'Testas su tokiu ID nerastas.',
+        'alert.ocrAdded': 'Klausimas pridėtas iš skenavimo! Peržiūrėkite ir pažymėkite teisingą atsakymą.',
+        'alert.ocrError': 'Klaida apdorojant vaizdą. Bandykite dar kartą arba įveskite rankiniu būdu.',
+        'alert.importSuccess': 'Testas sėkmingai importuotas!',
+        'alert.invalidJson': 'Netinkamas testo JSON.',
+        'alert.jsonParseError': 'Klaida analizuojant JSON',
+        'alert.clearHistory': 'Ar tikrai norite išvalyti visą istoriją?',
+        'alert.linkCopied': 'Nuoroda nukopijuota!',
+        // Dashboard
+        'dashboard.title': 'Rezultatų suvestinė',
+        'dashboard.recentActivity': 'Naujausia veikla',
+        'dashboard.highScores': 'Geriausi rezultatai',
+        'dashboard.date': 'Data',
+        'dashboard.name': 'Vardas',
+        'dashboard.quiz': 'Testas',
+        'dashboard.score': 'Rezultatas',
+        'dashboard.topStudent': 'Geriausias mokinys',
+        'dashboard.noResults': 'Rezultatų dar nėra.',
+        'dashboard.backToMenu': 'Atgal į meniu',
+        'dashboard.clearHistory': 'Išvalyti istoriją',
+        // Quiz UI Flow
+        'quiz.question': 'Klausimas',
+        'quiz.of': 'iš',
+        'quiz.score': 'Rezultatas',
+        'quiz.time': 'Laikas',
+        'quiz.correct': 'Teisingai!',
+        'quiz.incorrect': 'Neteisingai',
+        'quiz.timesUp': 'Laikas pasibaigė!',
+        'quiz.chooseAnswer': 'Pasirinkite atsakymą',
+        'quiz.nextQuestion': 'Kitas klausimas',
+        'quiz.complete': 'Testas baigtas!',
+        'quiz.viewResults': 'Peržiūrėti rezultatus',
+        'quiz.takeAgain': 'Bandyti dar kartą',
+        'quiz.backToMenu': 'Atgal į meniu',
+        'quiz.correctAnswer': 'Teisingas atsakymas',
+        'quiz.noAnswer': 'Neatsakyta',
+        // Quiz Titles
+        'quiz.demoTitle': 'Bandomasis testas',
+        'quiz.algebraTitle': 'Algebros pagrindai',
+        'quiz.combinatoricsTitle': 'Kombinatorikos iššūkis',
+        // Join Screen
+        'admin.adminMode': 'Administratoriaus režimas',
+        'admin.playerMode': 'Žaidėjo režimas',
+        'admin.newQuiz': 'Naujas testas',
+        'admin.timerUpdateError': 'Laikmačio atnaujinimo klaida',
+        'admin.prompt': 'Klausimas (LaTeX)',
+        'admin.confirmRemoveQuestion': 'Ar tikrai norite ištrinti šį klausimą?',
+        'admin.confirmRemoveChoice': 'Pašalinti šį pasirinkimą?',
+        'admin.untitledQuiz': 'Pavadinimas neįvestas',
+        'admin.errorNoQuestions': 'Pridėkite bent vieną klausimą!',
+        'admin.errorNoPrompt': 'Visi klausimai turi turėti klausimą!',
+        'admin.errorNoChoices': 'Kiekvienas klausimas turi turėti bent 2 pasirinkimus!',
+        'admin.errorNoCorrect': 'Kiekvienas klausimas turi turėti bent vieną teisingą atsakymą!',
+        'admin.saveSuccess': 'Testas sėkmingai išsaugotas!',
+        'admin.studentUrl': 'Nuoroda mokiniams',
+        'admin.copy': 'Kopijuoti',
+        'admin.dashboardUrl': 'Administratoriaus suvestinės nuoroda',
+        'admin.importSuccess': 'Testas sėkmingai importuotas!',
+        'admin.importInvalid': 'Netinkamas testo JSON.',
+        'admin.importError': 'Klaida analizuojant JSON',
+        'admin.confirmCancel': 'Ar tikrai norite atšaukti? Visi neįrašyti pakeitimai bus prarasti.',
+        // Join Screen
+        'join.joinQuiz': 'Prisijungti prie testo:',
+        'join.questions': 'klausimai',
+        'join.yourName': 'Jūsų vardas',
+        'join.namePlaceholder': 'Įveskite savo vardą',
+        'join.startBtn': 'Pradėti testą',
+        'join.backBtn': 'Atgal',
+        // Detailed Dashboard
+        'dashboard.actions': 'Veiksmai',
+        'dashboard.details': 'Detalės',
+        'dashboard.closeDetails': 'Uždaryti',
+        'dashboard.resultDetail': 'Rezultato informacija:',
+        'dashboard.selected': 'Pasirinkta',
+        'dashboard.noDetails': 'Išsamių duomenų apie šį rezultatą nėra.',
+        'dashboard.unified': 'Sukurti Testai',
+        'dashboard.time': 'Visas laikas',
+        'dashboard.avgTime': 'Vid. laikas per klausimą',
+        'dashboard.review': 'Peržiūra',
+    },
+    en: {
+        // Start Menu
+        'app.title': 'Quizleris',
+        'menu.welcome': 'Welcome to Quizleris',
+        'menu.selectRole': 'Please select your role:',
+        'menu.student': "I'm Student",
+        'menu.admin': "I'm Admin",
+        'menu.dashboard': 'View Dashboard',
+        // Student Form
+        'student.nameLabel': 'Your Name (optional)',
+        'student.namePlaceholder': 'Enter name to track results',
+        'student.premadeLabel': 'Try a Premade Quiz:',
+        'student.quizIdLabel': 'Or Enter Quiz Code / ID',
+        'student.quizIdPlaceholder': 'demo',
+        'student.startBtn': 'Start Quiz',
+        'student.backBtn': 'Back',
+        // Admin Panel
+        'admin.title': 'Create/Edit Quiz',
+        'admin.dashboard': 'Dashboard',
+        'admin.backToMenu': 'Back to Menu',
+        'admin.quizTitle': 'Quiz Title:',
+        'admin.quizTitlePlaceholder': 'My Math Quiz',
+        'admin.timerMode': 'Timer Mode:',
+        'admin.timerPerQuestion': 'Time per Question',
+        'admin.timerWholeQuiz': 'Time for Whole Quiz',
+        'admin.timerNone': 'No Timer (Stopwatch)',
+        'admin.timeLimit': 'Time Limit (seconds):',
+        'admin.addQuestion': '+ Add Question',
+        'admin.scanQuestion': '📷 Scan Question (OCR)',
+        'admin.saveQuiz': 'Save Quiz',
+        'admin.exportJson': 'Export JSON',
+        'admin.importJson': 'Import JSON',
+        'admin.cancel': 'Cancel',
+        'res_vis_label': 'Result Visibility:',
+        'res_vis_det': 'Detailed Review (Questions & Answers)',
+        'res_vis_sco': 'Score Only',
+        'admin.question': 'Question',
+        'admin.promptLabel': 'Prompt (LaTeX):',
+        'admin.addChoice': '+ Add Choice',
+        'admin.removeQuestion': 'Remove Question',
+        'admin.removeChoice': 'Delete choice',
+        'admin.quizSaved': 'Quiz saved!',
+        'admin.shareUrl': 'Share URL:',
+        'admin.quizId': 'Quiz ID:',
+        'admin.copyLink': 'Copy Link',
+        'admin.closePreview': 'Close & Preview',
+        // Alerts
+        'alert.deleteQuestion': 'Are you sure you want to delete this specific question?',
+        'alert.deleteChoice': 'Remove this choice?',
+        'alert.addOneQuestion': 'Add at least one question!',
+        'alert.allQuestionsPrompt': 'All questions must have a prompt!',
+        'alert.twoChoicesMin': 'Each question needs at least 2 choices!',
+        'alert.oneCorrectAnswer': 'Each question needs at least one correct answer!',
+        'alert.quizNotFound': 'Quiz not found with that ID.',
+        'alert.ocrAdded': 'Question added from scan! Review and mark the correct answer.',
+        'alert.ocrError': 'Error processing image. Please try again or type manually.',
+        'alert.importSuccess': 'Quiz imported successfully!',
+        'alert.invalidJson': 'Invalid quiz JSON.',
+        'alert.jsonParseError': 'Error parsing JSON',
+        'alert.clearHistory': 'Are you sure you want to clear all history?',
+        'alert.linkCopied': 'Link copied!',
+        // Dashboard
+        'dashboard.title': 'Results Dashboard',
+        'dashboard.recentActivity': 'Recent Activity',
+        'dashboard.highScores': 'High Scores',
+        'dashboard.date': 'Date',
+        'dashboard.name': 'Name',
+        'dashboard.quiz': 'Quiz',
+        'dashboard.score': 'Score',
+        'dashboard.topStudent': 'Top Student',
+        'dashboard.noResults': 'No results recorded yet.',
+        'dashboard.backToMenu': 'Back to Menu',
+        'dashboard.clearHistory': 'Clear History',
+        // Quiz UI Flow
+        'quiz.question': 'Question',
+        'quiz.of': 'of',
+        'quiz.score': 'Score',
+        'quiz.time': 'Time',
+        'quiz.correct': 'Correct!',
+        'quiz.incorrect': 'Incorrect',
+        'quiz.timesUp': "Time's Up!",
+        'quiz.chooseAnswer': 'Choose an answer',
+        'quiz.nextQuestion': 'Next Question',
+        'quiz.complete': 'Quiz Complete!',
+        'quiz.viewResults': 'View Results',
+        'quiz.takeAgain': 'Take Quiz Again',
+        'quiz.backToMenu': 'Back to Menu',
+        'quiz.correctAnswer': 'Correct Answer',
+        'quiz.noAnswer': 'No Answer',
+        // Quiz Titles
+        'quiz.demoTitle': 'Demo Quiz',
+        'quiz.algebraTitle': 'Algebra Basics',
+        'quiz.combinatoricsTitle': 'Combinatorics Challenge',
+        // Join Screen
+        'admin.adminMode': 'Admin Mode',
+        'admin.playerMode': 'Player Mode',
+        'admin.newQuiz': 'New Quiz',
+        'admin.timerUpdateError': 'Timer update error',
+        'admin.prompt': 'Prompt (LaTeX)',
+        'admin.confirmRemoveQuestion': 'Are you sure you want to delete this specific question?',
+        'admin.confirmRemoveChoice': 'Remove this choice?',
+        'admin.untitledQuiz': 'Untitled Quiz',
+        'admin.errorNoQuestions': 'Add at least one question!',
+        'admin.errorNoPrompt': 'All questions must have a prompt!',
+        'admin.errorNoChoices': 'Each question needs at least 2 choices!',
+        'admin.errorNoCorrect': 'Each question needs at least one correct answer!',
+        'admin.saveSuccess': 'Quiz saved successfully!',
+        'admin.studentUrl': 'Student Share URL',
+        'admin.copy': 'Copy',
+        'admin.dashboardUrl': 'Admin Dashboard URL',
+        'admin.importSuccess': 'Quiz imported successfully!',
+        'admin.importInvalid': 'Invalid quiz JSON.',
+        'admin.importError': 'Error parsing JSON',
+        'admin.confirmCancel': 'Are you sure you want to cancel? Any unsaved changes will be lost.',
+        // Join Screen
+        'join.joinQuiz': 'Join Quiz:',
+        'join.questions': 'questions',
+        'join.yourName': 'Your Name',
+        'join.namePlaceholder': 'Enter your name',
+        'join.startBtn': 'Start Quiz',
+        'join.backBtn': 'Back',
+        // Detailed Dashboard
+        'dashboard.actions': 'Actions',
+        'dashboard.details': 'Details',
+        'dashboard.closeDetails': 'Close',
+        'dashboard.resultDetail': 'Result Detail:',
+        'dashboard.selected': 'Selected',
+        'dashboard.noDetails': 'No detailed data available for this result.',
+        'dashboard.unified': 'Created Quizzes',
+        'dashboard.time': 'Total Time',
+        'dashboard.avgTime': 'Avg Time per Question',
+        'dashboard.review': 'Review',
+    }
+};
+let currentLanguage = 'lt'; // Default to Lithuanian
+// Initialize language from localStorage or default
+export function initLanguage() {
+    const saved = localStorage.getItem('quiz_language');
+    if (saved && (saved === 'lt' || saved === 'en')) {
+        currentLanguage = saved;
+    }
+}
+// Get current language
+export function getLanguage() {
+    return currentLanguage;
+}
+// Set language and persist
+export function setLanguage(lang) {
+    currentLanguage = lang;
+    localStorage.setItem('quiz_language', lang);
+}
+// Translate a key
+export function t(key) {
+    return translations[currentLanguage][key] || key;
+}
+// Update all translatable elements in the DOM
+export function updatePageLanguage() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n')?.trim();
+        if (key) {
+            el.textContent = t(key);
+        }
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder')?.trim();
+        if (key && el instanceof HTMLInputElement) {
+            el.placeholder = t(key);
+        }
+    });
+}
+//# sourceMappingURL=i18n.js.map

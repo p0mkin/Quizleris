@@ -24,4 +24,24 @@ export type Quiz = {
     title: string;
     questions: Question[];
     timerConfig?: TimerConfig;
+    showDetailedResults?: boolean;
 };
+
+export interface QuestionResult {
+    questionId: string;
+    questionPrompt: string;
+    selectedChoiceId: string;
+    selectedChoiceText: string;
+    isCorrect: boolean;
+    timeSpent: number;
+}
+
+export interface QuizResult {
+    name: string;
+    quizId: string;
+    quizTitle: string;
+    score: number;
+    maxScore: number;
+    date: string;
+    details: QuestionResult[];
+}

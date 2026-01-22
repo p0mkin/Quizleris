@@ -1,3 +1,4 @@
+import { t } from "./i18n.js";
 // Storage keys
 export const STORAGE_KEY_PREFIX = "quiz_";
 export const STORAGE_KEY_ALL_IDS = "quiz_all_ids";
@@ -20,8 +21,13 @@ export function saveQuizToStorage(quizData) {
 export function loadQuizFromStorage(quizId) {
     const key = STORAGE_KEY_PREFIX + quizId;
     const data = localStorage.getItem(key);
-    if (!data)
-        return null;
+    if (!data) {
+        // Fallback to premade
+        if (quizId === "demo")
+            return getDemoQuiz();
+        const premade = getPremadeQuizzes().find(q => q.id === quizId);
+        return premade || null;
+    }
     try {
         return JSON.parse(data);
     }
@@ -75,7 +81,7 @@ export function loadQuiz() {
 export function getDemoQuiz() {
     return {
         id: "demo",
-        title: "Demo Quiz",
+        title: t('quiz.demoTitle'),
         questions: [
             {
                 id: "q1",
@@ -95,7 +101,7 @@ export function getPremadeQuizzes() {
         getDemoQuiz(),
         {
             id: "algebra",
-            title: "Algebra Basics",
+            title: t('quiz.algebraTitle'),
             questions: [
                 {
                     id: "a1",
@@ -131,7 +137,7 @@ export function getPremadeQuizzes() {
         },
         {
             id: "combinatorics",
-            title: "Combinatorics Challenge",
+            title: t('quiz.combinatoricsTitle'),
             questions: [
                 {
                     id: "c1",
@@ -203,6 +209,12 @@ export function getResults() {
     catch {
         return [];
     }
+}
+export function getResultsByQuizId(quizId) {
+    return getResults().filter(r => r.quizId === quizId);
+}
+export function clearResults() {
+    localStorage.removeItem(STORAGE_KEY_RESULTS);
 }
 export function getHighScores() {
     const results = getResults();

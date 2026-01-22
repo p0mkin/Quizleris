@@ -30,18 +30,22 @@
     <!-- Minimal static structure; TypeScript will fill this dynamically -->
 
     <header class="quiz-header" style="display: none;">
-      <h1>Math Quiz</h1>
-      <button id="admin-toggle" class="btn">Admin Mode</button>
+      <h1 data-i18n="app.title">Quizleris</h1>
+      <button id="admin-toggle" class="btn" data-i18n="admin.adminMode">Admin Mode</button>
     </header>
 
     <section id="start-menu" class="start-menu">
-      <h1>Welcome to Quizleris</h1>
-      <p>Please select your role:</p>
+      <div style="position: absolute; top: 20px; right: 20px;">
+        <button id="lang-toggle" class="btn" style="font-size: 0.9rem; padding: 6px 12px;" title="Switch Language">
+          🌐 <span id="lang-label">LT</span>
+        </button>
+      </div>
+
+      <h1 data-i18n="menu.welcome">Sveiki atvykę į Quizleris</h1>
+      <p data-i18n="menu.selectRole">Pasirinkite savo vaidmenį:</p>
       <div class="menu-actions">
-        <button id="menu-btn-student" class="btn btn-primary">I'm Student</button>
-        <button id="menu-btn-admin" class="btn">I'm Admin</button>
-        <button id="menu-btn-dashboard" class="btn btn-secondary" style="background: rgba(255,255,255,0.1);">View
-          Dashboard</button>
+        <button id="menu-btn-student" class="btn btn-primary" data-i18n="menu.student">Esu Mokinys</button>
+        <button id="menu-btn-admin" class="btn" data-i18n="menu.admin">Esu Administratorius</button>
       </div>
     </section>
 
@@ -63,57 +67,70 @@
     </main>
 
     <section id="dashboard-view" class="dashboard-view" style="display: none;">
-      <h2>Results Dashboard</h2>
+      <h2 data-i18n="dashboard.title" style="text-align: center; font-size: 2rem; margin-bottom: 24px;">Rezultatų
+        suvestinė</h2>
       <div id="dashboard-content"></div>
-      <div class="dashboard-actions">
-        <button id="dashboard-close-btn" class="btn btn-primary">Back to Menu</button>
-        <button id="dashboard-clear-btn" class="btn btn-danger">Clear History</button>
+      <div class="dashboard-actions" style="margin-top: 32px; display: flex; justify-content: center; gap: 16px;">
+        <button id="dashboard-close-btn" class="btn btn-primary" data-i18n="dashboard.backToMenu">Atgal į meniu</button>
+        <button id="dashboard-clear-btn" class="btn btn-danger" data-i18n="dashboard.clearHistory"
+          style="background: #ef4444; border: none; padding: 10px 20px;">Išvalyti istoriją</button>
       </div>
     </section>
 
     <!-- Admin panel (hidden by default) -->
     <section id="admin-panel" class="admin-panel" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 style="margin: 0;">Create/Edit Quiz</h2>
+        <h2 style="margin: 0;" data-i18n="admin.title">Create/Edit Quiz</h2>
         <div style="display: flex; gap: 10px;">
-          <button id="admin-btn-dashboard" class="btn" style="font-size: 0.9rem; padding: 6px 12px;">Dashboard</button>
-          <button id="admin-btn-back" class="btn" style="font-size: 0.9rem; padding: 6px 12px;">Back to Menu</button>
+          <button id="admin-btn-back" class="btn" style="font-size: 0.9rem; padding: 6px 12px;"
+            data-i18n="admin.backToMenu">Back to Menu</button>
         </div>
       </div>
       <div class="admin-form">
         <label>
-          Quiz Title:
-          <input type="text" id="admin-quiz-title" placeholder="My Math Quiz" />
+          <span data-i18n="admin.quizTitle">Quiz Title:</span>
+          <input type="text" id="admin-quiz-title" data-i18n-placeholder="admin.quizTitlePlaceholder"
+            placeholder="My Math Quiz" />
         </label>
 
         <div
           style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
           <div style="flex: 1;">
-            <label style="display: block; margin-bottom: 5px;">Timer Mode:</label>
+            <label style="display: block; margin-bottom: 5px;" data-i18n="admin.timerMode">Timer Mode:</label>
             <select id="admin-timer-mode" class="admin-form" style="width: 100%;">
-              <option value="question">Time per Question</option>
-              <option value="quiz">Time for Whole Quiz</option>
-              <option value="none">No Timer (Stopwatch)</option>
+              <option value="question" data-i18n="admin.timerPerQuestion">Time per Question</option>
+              <option value="quiz" data-i18n="admin.timerWholeQuiz">Time for Whole Quiz</option>
+              <option value="none" data-i18n="admin.timerNone">No Timer (Stopwatch)</option>
             </select>
           </div>
           <div style="flex: 1;">
-            <label style="display: block; margin-bottom: 5px;">Time Limit (seconds):</label>
+            <label style="display: block; margin-bottom: 5px;" data-i18n="admin.timeLimit">Time Limit (seconds):</label>
             <input type="number" id="admin-timer-limit" class="admin-form" value="30" style="width: 100%;" />
           </div>
         </div>
 
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 8px;" data-i18n="res_vis_label">Result Visibility:</label>
+          <div class="segmented-control" id="admin-result-visibility-group">
+            <button type="button" class="segment-btn" data-value="detailed" data-i18n="res_vis_det">Detailed
+              Review</button>
+            <button type="button" class="segment-btn" data-value="score" data-i18n="res_vis_sco">Score Only</button>
+          </div>
+          <input type="hidden" id="admin-show-results-value" value="detailed">
+        </div>
+
         <div id="admin-questions-list"></div>
         <div class="admin-question-actions">
-          <button id="admin-add-question" class="btn">+ Add Question</button>
-          <button id="admin-scan-question" class="btn">📷 Scan Question (OCR)</button>
+          <button id="admin-add-question" class="btn" data-i18n="admin.addQuestion">+ Add Question</button>
+          <button id="admin-scan-question" class="btn" data-i18n="admin.scanQuestion">📷 Scan Question (OCR)</button>
           <input type="file" id="admin-ocr-input" accept="image/*" style="display: none;" />
         </div>
         <div class="admin-actions">
-          <button id="admin-save" class="btn btn-primary">Save Quiz</button>
-          <button id="admin-export" class="btn btn-secondary">Export JSON</button>
-          <button id="admin-import-btn" class="btn btn-secondary">Import JSON</button>
+          <button id="admin-save" class="btn btn-primary" data-i18n="admin.saveQuiz">Save Quiz</button>
+          <button id="admin-export" class="btn btn-secondary" data-i18n="admin.exportJson">Export JSON</button>
+          <button id="admin-import-btn" class="btn btn-secondary" data-i18n="admin.importJson">Import JSON</button>
           <input type="file" id="admin-import-input" accept=".json" style="display: none;" />
-          <button id="admin-cancel" class="btn">Cancel</button>
+          <button id="admin-cancel" class="btn" data-i18n="admin.cancel">Cancel</button>
         </div>
         <div id="admin-share-code" class="admin-share" style="display: none;"></div>
       </div>
