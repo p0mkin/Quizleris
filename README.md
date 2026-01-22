@@ -48,6 +48,9 @@ Live demo: [https://github.com/p0mkin/Quizleris/]
   npm start   ( runs: http-server . -o )
 
 --------------------------------------------------------------
+To Edit A Quiz: Add this(?admin=true) to the link 
+http://localhost:8080 / ?admin=true
+--------------------------------------------------------------
 
   Project Structure:
   
