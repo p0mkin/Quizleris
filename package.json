@@ -1,13 +1,15 @@
 {
-  "name": "quizleris",
+  "name": "Quizleris",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "http-server . -o"
   },
   "keywords": [],
-  "author": "",
+  "author": "e1tvis",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
