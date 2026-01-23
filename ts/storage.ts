@@ -4,6 +4,7 @@ import { t } from "./i18n.js";
 // Storage keys
 export const STORAGE_KEY_PREFIX = "quiz_";
 export const STORAGE_KEY_ALL_IDS = "quiz_all_ids";
+export const STORAGE_KEY_IMAGE_REGISTRY_PREFIX = "quiz-images_";
 
 // Generate a simple ID (timestamp-based)
 export function generateQuizId(): string {
@@ -60,10 +61,42 @@ export function loadQuiz(): Quiz {
     if (quizParam) {
         // Try to decode as base64 JSON (for sharing)
         try {
-            const decoded = atob(quizParam);
+            // Enhanced decoding: supports UTF-8 (Lithuanian chars) and handles binary data safety
+            const binary = atob(quizParam);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const decoded = new TextDecoder().decode(bytes);
             const parsed = JSON.parse(decoded) as Quiz;
+
+            // Restore image prefixes (Approach #1) and Local Registry references (Approach #2)
+            const prefix = "data:image/jpeg;base64,";
+            parsed.questions.forEach(q => {
+                // Handle Approach #1 (Prefix Stripping)
+                if (q.image && !q.image.startsWith("data:") && !q.image.startsWith("local:")) {
+                    q.image = prefix + q.image;
+                }
+                // Handle Approach #2 (Local Registry)
+                if (q.image?.startsWith("local:")) {
+                    const imgId = q.image.substring(6);
+                    q.image = getImageFromRegistry(parsed.id, imgId) || "";
+                }
+
+                q.choices?.forEach(c => {
+                    // Handle Approach #1
+                    if (c.image && !c.image.startsWith("data:") && !c.image.startsWith("local:")) {
+                        c.image = prefix + c.image;
+                    }
+                    // Handle Approach #2
+                    if (c.image?.startsWith("local:")) {
+                        const imgId = c.image.substring(6);
+                        c.image = getImageFromRegistry(parsed.id, imgId) || "";
+                    }
+                });
+            });
+
             return parsed;
-        } catch {
+        } catch (e) {
+            console.warn("Base64 decode failed, trying raw string lookup", e);
             // If not base64, treat as localStorage ID
             const loaded = loadQuizFromStorage(quizParam);
             if (loaded) return loaded;
@@ -239,3 +272,20 @@ export function getHighScores(): QuizResult[] {
     return Array.from(highScores.values());
 }
 
+
+export function saveImageRegistry(quizId: string, images: Record<string, string>): void {
+    const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
+    localStorage.setItem(key, JSON.stringify(images));
+}
+
+export function getImageFromRegistry(quizId: string, imgId: string): string | null {
+    const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
+    const data = localStorage.getItem(key);
+    if (!data) return null;
+    try {
+        const registry = JSON.parse(data) as Record<string, string>;
+        return registry[imgId] || null;
+    } catch {
+        return null;
+    }
+}

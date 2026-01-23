@@ -109,6 +109,30 @@
           </div>
         </div>
 
+        <div
+          style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 5px;" data-i18n="admin.quizMode">Quiz Mode:</label>
+            <select id="admin-quiz-mode" class="admin-form" style="width: 100%;">
+              <option value="practice" data-i18n="admin.modePractice">Practice (instant feedback)</option>
+              <option value="exam" data-i18n="admin.modeExam">Exam (results after submission)</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="display: block; margin-bottom: 5px;" data-i18n="admin.shuffleConfig">Shuffle Settings:</label>
+            <div style="display: flex; gap: 15px; align-items: center; margin-top: 5px;">
+              <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text);">
+                <input type="checkbox" id="admin-shuffle-questions" /> <span
+                  data-i18n="admin.shuffleQuestions">Questions</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text);">
+                <input type="checkbox" id="admin-shuffle-answers" /> <span
+                  data-i18n="admin.shuffleAnswers">Choices</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div class="form-group" style="margin-bottom: 20px;">
           <label style="display: block; margin-bottom: 8px;" data-i18n="res_vis_label">Result Visibility:</label>
           <div class="segmented-control" id="admin-result-visibility-group">

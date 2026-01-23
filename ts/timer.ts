@@ -30,7 +30,7 @@ export function startTimer(config: TimerConfig, onTimeout?: () => void): void {
 
     // For quiz mode, we use global start time. For question mode, current question start.
     const startTime = mode === 'question'
-        ? (quiz.questionStartTimes[quiz.currentIndex] || Date.now())
+        ? (quiz.questionStartTimes.get(quiz.shuffledQuestions[quiz.currentIndex].id) || Date.now())
         : quiz.startTime;
 
     timerInterval = window.setInterval(() => {
