@@ -1,6 +1,9 @@
 import type { Quiz, Question, QuestionResult } from "./types.js";
 
-// Simple state container for quiz progress
+/**
+ * Encapsulates the runtime state of a single quiz session.
+ * Handles shuffling, question traversal, answer recording, and scoring logic.
+ */
 export class QuizState {
     quiz: Quiz;
     shuffledQuestions: Question[];
@@ -17,7 +20,7 @@ export class QuizState {
     constructor(quiz: Quiz) {
         this.quiz = quiz;
 
-        // Clone questions to avoid modifying the original data until we shuffle
+        // Perform a deep clone to safely shuffle without affecting the original quiz template.
         this.shuffledQuestions = JSON.parse(JSON.stringify(quiz.questions));
 
         // 1. Shuffle Questions if configured
@@ -56,7 +59,11 @@ export class QuizState {
         return Date.now() - this.startTime;
     }
 
-    // Submit an answer (immediate for Practice, stored for Exam)
+    /**
+     * Submits an answer for the current or a specific question.
+     * In Practice mode, this triggers immediate grading and records the score.
+     * In Exam mode, it simply archives the answer for later grading.
+     */
     submitAnswer(answer: any, questionId?: string): boolean {
         const targetQ = questionId ?
             this.shuffledQuestions.find(q => q.id === questionId)! :
@@ -84,6 +91,13 @@ export class QuizState {
         return false; // Result not immediately relevant in Exam Mode
     }
 
+    /**
+     * Determines the correctness of an answer based on question type.
+     * Multi-choice: Exact set match.
+     * Numeric: Comparison within tolerance.
+     * Fill-blank: Case-insensitive string match for all blanks.
+     * Image/Text: Always pending manual review.
+     */
     gradeQuestion(q: Question, answer: any): { isCorrect: boolean, pendingReview: boolean } {
         if (answer === null || answer === undefined) return { isCorrect: false, pendingReview: false };
 
@@ -108,6 +122,7 @@ export class QuizState {
                     tolerance = (Math.abs(q.correctAnswerNumber) * tolerance) / 100;
                 }
 
+                // Using a small epsilon to handle typical floating point precision issues.
                 const isCorrect = Math.abs(val - q.correctAnswerNumber) <= (tolerance + 0.000001);
                 return { isCorrect, pendingReview: false };
             }
@@ -118,6 +133,7 @@ export class QuizState {
                 if (correctAnswers.length === 0) return { isCorrect: false, pendingReview: false };
 
                 const isCorrect = correctAnswers.every((correct, idx) =>
+                    // Normalizing input with trim and lowercase for robustness.
                     String(studentAnswers[idx] || "").trim().toLowerCase() === correct.trim().toLowerCase()
                 );
                 return { isCorrect, pendingReview: false };
@@ -129,12 +145,11 @@ export class QuizState {
 
             case 'image-upload':
             case 'text':
-                // Check if any keyword matches for text (optional)
+                // Keyword matching for auto-hinting (disabled/informational only).
                 if (type === 'text' && q.expectedKeywords && q.expectedKeywords.length > 0) {
                     const txt = String(answer).toLowerCase();
                     if (q.expectedKeywords.some(kw => txt.includes(kw.toLowerCase()))) {
-                        // We could auto-grade here, but requirement says "Flagged for manual grading"
-                        // So we still mark as pending review but maybe hint that it might be correct
+                        // Logic for proximity-based auto-grading could be added here.
                     }
                 }
                 return { isCorrect: false, pendingReview: true };
@@ -162,6 +177,10 @@ export class QuizState {
         }
     }
 
+    /**
+     * Compiles final analytics for the quiz session.
+     * Calculates the final percentage, total time, and per-question breakdowns.
+     */
     getResults(): {
         score: number;
         total: number;

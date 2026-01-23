@@ -10,6 +10,9 @@ let studentBtn: HTMLButtonElement;
 let adminBtn: HTMLButtonElement;
 let isStudentMenuOpen = false;
 
+/**
+ * Bootstraps the main menu DOM references and top-level navigation buttons.
+ */
 export function setupMenu(callbacks: { onAdmin: () => void }): void {
     startMenu = getRequiredElement("start-menu");
     quizHeader = document.querySelector(".quiz-header") as HTMLElement;
@@ -37,6 +40,10 @@ export function isStudentViewActive(): boolean {
     return isStudentMenuOpen;
 }
 
+/**
+ * Resets the UI to the initial landing screen.
+ * Hides the quiz interface and clears any active student forms.
+ */
 export function renderStartMenu(): void {
     // Ensure elements are ready
     if (!startMenu) {
@@ -55,6 +62,10 @@ export function renderStartMenu(): void {
     isStudentMenuOpen = false;
 }
 
+/**
+ * Renders the intermediate "Join Quiz" screen shown when a user follows a quiz link.
+ * Displays quiz metadata (title, question count, timer) and name input.
+ */
 export function renderStudentJoin(quizToJoin: Quiz): void {
     if (!startMenu) return;
 
@@ -130,6 +141,11 @@ export function renderStudentJoin(quizToJoin: Quiz): void {
 
 
 // Student form handling
+/**
+ * Displays the student role choosing form.
+ * Generates a list of premade quizzes and inputs for custom Quiz IDs.
+ * NOTE: Uses 'data-i18n' attributes for dynamic translation support.
+ */
 export function handleStudentClick(): void {
     // Hide welcome text and buttons, show student form
     const welcomeH1 = startMenu.querySelector('h1') as HTMLElement;

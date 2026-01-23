@@ -1,33 +1,42 @@
 // Basic types for the quiz application
 
+/**
+ * Represents a single choice in a multiple-choice question.
+ */
 export type Choice = {
-    id: string;
-    text: string;
+    id: string; // e.g., "a", "b", "c"
+    text: string; // The text content (can contain LaTeX)
     isCorrect: boolean;
-    image?: string; // base64 string
+    image?: string; // Optional Base64 or URL reference
 };
 
 export type QuestionType = "multiple-choice" | "numeric" | "fill-blank" | "image-upload" | "text" | "true-false";
 
 export type ToleranceType = "absolute" | "percentage";
 
+/**
+ * The core data structure for a quiz question.
+ * NOTE: This is a "flat" structure containing fields for ALL question types.
+ * For better type safety, this could be refactored into a Discriminated Union.
+ */
 export type Question = {
     id: string;
-    prompt: string; // LaTeX-friendly string
-    type?: QuestionType; // Defaults to multiple-choice
-    image?: string; // Attached by admin
-    choices?: Choice[]; // used for multiple-choice
+    prompt: string; // The primary question text. LaTeX-friendly.
+    type?: QuestionType; // Defaults to multiple-choice if omitted.
+    image?: string; // Optional main image for the question.
+    choices?: Choice[]; // Used for multiple-choice only.
 
-    // Type-specific configs
-    allowMultipleAnswers?: boolean; // For MC
-    correctAnswerNumber?: number; // For numeric
-    toleranceType?: ToleranceType; // For numeric
-    toleranceValue?: number; // For numeric
-    blankAnswers?: string[]; // For fill-blank (sequential for ___)
-    expectedKeywords?: string[]; // For text answer
-    isLongAnswer?: boolean; // For text answer
-    isTrue?: boolean; // For true-false
+    // Type-specific configurations
+    allowMultipleAnswers?: boolean; // For multiple-choice: enables checkbox style
+    correctAnswerNumber?: number; // For numeric: the target value
+    toleranceType?: ToleranceType; // For numeric: how tolerance is calculated
+    toleranceValue?: number; // For numeric: the allowed deviation
+    blankAnswers?: string[]; // For fill-blank: correct answers mapped to '___' markers
+    expectedKeywords?: string[]; // For text answer: used for keyword matching (manual review hint)
+    isLongAnswer?: boolean; // For text answer: toggles between input and textarea
+    isTrue?: boolean; // For true-false: the correct boolean state
 };
+
 
 export type TimerMode = "question" | "quiz" | "none";
 
@@ -43,13 +52,16 @@ export interface ShuffleConfig {
     answers: boolean;
 }
 
+/**
+ * The top-level quiz definition containing all metadata and questions.
+ */
 export type Quiz = {
     id: string;
     title: string;
     questions: Question[];
     timerConfig?: TimerConfig;
-    showDetailedResults?: boolean;
-    mode?: QuizMode;
+    showDetailedResults?: boolean; // Toggles the visibility of the review list in results
+    mode?: QuizMode; // 'practice' or 'exam'
     shuffleConfig?: ShuffleConfig;
 };
 

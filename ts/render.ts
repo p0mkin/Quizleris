@@ -6,8 +6,13 @@ import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 import { t } from "./i18n.js";
 
-// SANITIZER: This function explicitly filters URLs to ensure they only contain safe image data.
-// It returns a known-safe transparent GIF fallback for any untrusted input.
+/**
+ * SANITIZER: Explicitly filters and validates URLs to ensure they contain safe image data.
+ * This is a critical security layer to prevent XSS via malicious data URIs or protocols.
+ * 
+ * @param url - The raw URL string from the quiz data
+ * @returns A validated safe URL or a transparent GIF fallback
+ */
 function sanitizeImageUrl(url: string | undefined): string {
     const safeFallback = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
     if (!url) return safeFallback;
@@ -35,6 +40,10 @@ function sanitizeImageUrl(url: string | undefined): string {
     return safeFallback;
 }
 
+/**
+ * Utility to recursively remove all child nodes from an element.
+ * NOTE: Does not explicitly remove event listeners, relying on GC if listeners are not held elsewhere.
+ */
 function clearElement(el: HTMLElement | null): void {
     if (!el) return;
     while (el.firstChild) {
@@ -42,7 +51,10 @@ function clearElement(el: HTMLElement | null): void {
     }
 }
 
-// Render question prompt
+/**
+ * Renders the question text, prompt decorations, and any associated images.
+ * Also triggers KaTeX rendering for LaTeX math.
+ */
 export function renderQuestion(q: Question): void {
     const typeLabel = q.type === 'multiple-choice' ?
         (q.allowMultipleAnswers ? t('quiz.mcSelectAll') : t('quiz.mcSelectOne')) : '';
@@ -137,9 +149,16 @@ export function renderAnswers(q: Question): void {
     });
 }
 
+/**
+ * Specialized renderer for Multiple Choice Questions.
+ * Handles both single-select (radio) and multi-select (checkbox) styles.
+ * Provides immediate feedback in Practice mode, or selection state in Exam mode.
+ */
 function renderMCQ(q: Question): void {
     const allowMultiple = q.allowMultipleAnswers;
+    // userAnswers might contain a single ID or an array of IDs
     const currentAnswer = quiz?.userAnswers.get(q.id) || [];
+    // Feedback is hidden in Exam mode until final submission
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
 
     q.choices?.forEach((choice) => {
@@ -278,9 +297,14 @@ function renderNumeric(q: Question): void {
     }
 }
 
+/**
+ * Renders Fill-in-the-Blank inputs based on '___' patterns in the prompt.
+ * NOTE: The prompt parsing relies on a simple regex; complex patterns might need a formal parser.
+ */
 function renderFillBlank(q: Question): void {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentAnswers = quiz?.userAnswers.get(q.id) || [];
+    // Counting occurrences of '___' to determine number of input fields
     const blankCount = (q.prompt.match(/___/g) || []).length;
 
     const container = document.createElement("div");
@@ -440,7 +464,10 @@ function renderImageUpload(q: Question): void {
     }
 }
 
-// Answer handler
+/**
+ * Handles the logic when a user provides an answer to a question.
+ * Records the answer in the state and triggers a re-render for feedback if in Practice mode.
+ */
 export function onAnswer(answer: any): void {
     if (!quiz || (quiz.hasAnswered && quiz.quiz.mode !== 'exam')) return;
 
@@ -451,7 +478,10 @@ export function onAnswer(answer: any): void {
     }
 }
 
-// Global quiz render function
+/**
+ * The primary entry point for drawing the current state of the quiz.
+ * Orchestrates prompt rendering, answer rendering, status updates, and timer management.
+ */
 export function renderQuiz(): void {
     if (!quiz) return;
 
@@ -567,6 +597,10 @@ export function renderQuestionCounter(): void {
     counter.textContent = `${t('quiz.question')} ${quiz.currentIndex + 1} ${t('quiz.of')} ${quiz.shuffledQuestions.length}`;
 }
 
+/**
+ * Controls the visibility and text of the main flow button (Next/Submit/Results).
+ * Dynamically changes behavior based on Exam vs Practice mode.
+ */
 export function renderNextButton(): void {
     const btnId = "next-btn";
     let btn = document.getElementById(btnId) as HTMLButtonElement | null;
@@ -619,6 +653,10 @@ export function renderNextButton(): void {
 
 }
 
+/**
+ * Final phase of the quiz. 
+ * Stops timers, calculates final results, saves to local history, and displays the results card.
+ */
 export function showResults(): void {
     if (!quiz) return;
     clearTimer();

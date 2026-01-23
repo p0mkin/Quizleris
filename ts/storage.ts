@@ -6,12 +6,18 @@ export const STORAGE_KEY_PREFIX = "quiz_";
 export const STORAGE_KEY_ALL_IDS = "quiz_all_ids";
 export const STORAGE_KEY_IMAGE_REGISTRY_PREFIX = "quiz-images_";
 
-// Generate a simple ID (timestamp-based)
+/**
+ * Generates a unique-enough ID for a quiz using the current timestamp.
+ * NOTE: In a multi-user or high-concurrency environment, this should be replaced with a UUID.
+ */
 export function generateQuizId(): string {
     return `quiz_${Date.now()}`;
 }
 
-// Save quiz to localStorage
+/**
+ * Persists a quiz object to localStorage and updates the global ID index.
+ * WARNING: localStorage has a size limit (usually ~5MB). Quizzes with many images may exceed this.
+ */
 export function saveQuizToStorage(quizData: Quiz): void {
     const key = STORAGE_KEY_PREFIX + quizData.id;
     localStorage.setItem(key, JSON.stringify(quizData));
@@ -52,7 +58,11 @@ export function getAllQuizIds(): string[] {
     }
 }
 
-// Load quiz from URL param or localStorage, or return default demo quiz
+/**
+ * The primary loading routine for the application.
+ * Checks for a 'quiz' URL parameter (Base64 data) first, then falls back to localStorage.
+ * Handles the heavy lifting of Base64 decoding and image registry restoration.
+ */
 export function loadQuiz(): Quiz {
     // Check URL param first: ?quiz=abc123
     const params = new URLSearchParams(window.location.search);
@@ -61,7 +71,8 @@ export function loadQuiz(): Quiz {
     if (quizParam) {
         // Try to decode as base64 JSON (for sharing)
         try {
-            // Enhanced decoding: supports UTF-8 (Lithuanian chars) and handles binary data safety
+            // Enhanced decoding: supports UTF-8 (Lithuanian chars) and handles binary data safety.
+            // Uses TextDecoder to correctly interpret multi-byte characters.
             const binary = atob(quizParam);
             const bytes = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -235,6 +246,9 @@ export function getPremadeQuizzes(): Quiz[] {
 
 export const STORAGE_KEY_RESULTS = "quiz_results";
 
+/**
+ * Records a student's quiz result in the local history.
+ */
 export function saveResult(result: QuizResult): void {
     const results = getResults();
     results.push(result);
@@ -273,6 +287,10 @@ export function getHighScores(): QuizResult[] {
 }
 
 
+/**
+ * Stores a map of image IDs to Base64 data for a specific quiz.
+ * This is used to keep shareable URLs short by moving image data to local storage.
+ */
 export function saveImageRegistry(quizId: string, images: Record<string, string>): void {
     const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
     localStorage.setItem(key, JSON.stringify(images));

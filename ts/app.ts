@@ -6,6 +6,11 @@ import { setupDashboard, renderDashboard } from "./dashboard.js";
 import { loadQuiz } from "./storage.js";
 import { initLanguage, setLanguage, getLanguage, updatePageLanguage } from "./i18n.js";
 
+/**
+ * The main application bootstrap function.
+ * Orchestrates the initialization of all modules, sets up global callbacks,
+ * handles initial routing via URL parameters, and wires up the language switcher.
+ */
 function initApp() {
     try {
         // Initialize language system first

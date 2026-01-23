@@ -30,13 +30,19 @@ let adminShuffleQuestions;
 let adminShuffleAnswers;
 // Callbacks
 let goHome = () => { };
-// Refresh admin toggle button visibility
+/**
+ * Refresh admin toggle button visibility based on authorization.
+ * Ensures the toggle isn't visible to students unless they have the secret param or session.
+ */
 export function refreshAdminToggleVisibility() {
     if (!adminToggle)
         return;
     adminToggle.style.display = isAdminAccessAllowed() ? "block" : "none";
 }
-// Initialize admin DOM refs and events
+/**
+ * Entry point for Admin UI. Binds all major DOM elements and sets up standard events.
+ * Also performs an initial visibility check for the admin toggle.
+ */
 export function setupAdmin(callbacks) {
     goHome = callbacks.onHome;
     adminToggle = getRequiredElement("admin-toggle");
@@ -64,7 +70,10 @@ export function setupAdmin(callbacks) {
     refreshAdminToggleVisibility();
     setupAdminEventsInternal();
 }
-// Toggle admin mode
+/**
+ * Main routine to switch between Student (Player) and Admin (Editor) views.
+ * Handles password prompting if not already authorized.
+ */
 export function toggleAdminMode() {
     if (!isAdminAccessAllowed()) {
         if (!promptAdminPassword())
@@ -72,13 +81,16 @@ export function toggleAdminMode() {
         refreshAdminToggleVisibility();
     }
     adminMode = !adminMode;
+    // UI state sync
     adminPanel.style.display = adminMode ? "block" : "none";
     adminToggle.textContent = adminMode ? t('admin.playerMode') : t('admin.adminMode');
     if (adminMode) {
         if (quiz) {
+            // Shadow copy of current quiz to edit
             adminQuiz = { ...quiz.quiz };
         }
         else {
+            // New quiz scaffold
             adminQuiz = {
                 id: generateQuizId(),
                 title: t('admin.newQuiz'),
@@ -88,7 +100,10 @@ export function toggleAdminMode() {
         renderAdminForm();
     }
 }
-// Render admin form
+/**
+ * Heavy UI rendering function for the Admin Editor.
+ * Rebuilds the entire question list DOM based on the current 'adminQuiz' state.
+ */
 export function renderAdminForm() {
     if (!adminQuiz)
         return;
@@ -417,6 +432,10 @@ function renderQuestionConfig(q, qIdx) {
         default: return '';
     }
 }
+/**
+ * Synchronization function that reads values from DOM inputs back into the 'adminQuiz' object.
+ * This is called before any state-modifying action (Save, Export, Add Question).
+ */
 function updateQuizFromDOM() {
     if (!adminQuiz)
         return;
@@ -471,6 +490,13 @@ function updateTimerLimitVisibility() {
     if (parent)
         parent.style.display = adminTimerMode.value === "none" ? "none" : "block";
 }
+/**
+ * Finalizes the quiz editing process.
+ * 1. Syncs DOM state
+ * 2. Compresses/Optimizes images for sharing
+ * 3. Generates a Base64-encoded shareable URL
+ * 4. Saves locally to storage
+ */
 export function saveAdminQuiz() {
     if (!adminQuiz)
         return;
@@ -628,6 +654,10 @@ function updateSegmentedUI(value) {
             btn.classList.remove("active");
     });
 }
+/**
+ * Downscales and compresses uploaded images to keep Base64 strings within reasonable limits.
+ * Uses a canvas-based approach to convert to JPEG with 50% quality.
+ */
 async function resizeImage(file, maxDim) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
