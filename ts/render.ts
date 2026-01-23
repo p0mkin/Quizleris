@@ -6,18 +6,73 @@ import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 import { t } from "./i18n.js";
 
+function isSafeUrl(url: string | undefined): boolean {
+    if (!url) return false;
+    // Allow data URLs for images
+    if (url.startsWith('data:image/')) return true;
+    // Allow local registry references
+    if (url.startsWith('local:img')) return true;
+    // Allow http/https URLs
+    try {
+        const parsed = new URL(url);
+        return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+        // Fallback for relative paths if any (though not expected in this app)
+        return url.startsWith('./') || url.startsWith('/');
+    }
+}
+
 // Render question prompt
 export function renderQuestion(q: Question): void {
     const typeLabel = q.type === 'multiple-choice' ?
         (q.allowMultipleAnswers ? t('quiz.mcSelectAll') : t('quiz.mcSelectOne')) : '';
 
-    questionContainer.innerHTML = `
-    <div class="prompt-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        ${typeLabel ? `<span class="badge" style="background: var(--accent); color: white;">${typeLabel}</span>` : '<span></span>'}
-    </div>
-    ${q.image ? `<div class="question-image" style="margin-bottom: 15px; text-align: center;"><img src="${q.image}" style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);" /></div>` : ''}
-    <div class="prompt">${q.prompt}</div>
-  `;
+    questionContainer.innerHTML = ""; // Clear
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "prompt-header";
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "10px";
+
+    if (typeLabel) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.style.background = "var(--accent)";
+        badge.style.color = "white";
+        badge.textContent = typeLabel;
+        header.appendChild(badge);
+    } else {
+        header.appendChild(document.createElement("span"));
+    }
+    questionContainer.appendChild(header);
+
+    // Image
+    if (q.image && isSafeUrl(q.image)) {
+        const imgDiv = document.createElement("div");
+        imgDiv.className = "question-image";
+        imgDiv.style.marginBottom = "15px";
+        imgDiv.style.textAlign = "center";
+
+        const img = document.createElement("img");
+        img.src = q.image;
+        img.style.maxWidth = "100%";
+        img.style.maxHeight = "300px";
+        img.style.borderRadius = "8px";
+        img.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+
+        imgDiv.appendChild(img);
+        questionContainer.appendChild(imgDiv);
+    }
+
+    // Prompt
+    const prompt = document.createElement("div");
+    prompt.className = "prompt";
+    prompt.textContent = q.prompt;
+    questionContainer.appendChild(prompt);
+
     // Ask KaTeX to render LaTeX
     (window as any).renderMathInElement(questionContainer, {
         delimiters: [
@@ -73,13 +128,35 @@ function renderMCQ(q: Question): void {
         if (allowMultiple) btn.classList.add("checkbox-style");
 
         btn.dataset.choiceId = choice.id;
-        btn.innerHTML = `
-            <div class="mc-indicator">${allowMultiple ? '' : choice.id.toUpperCase()}</div>
-            <div class="mc-content" style="display: flex; flex-direction: column; gap: 8px; flex: 1;">
-                ${choice.image ? `<img src="${choice.image}" style="max-height: 120px; width: auto; align-self: flex-start; border-radius: 4px;" />` : ''}
-                <div class="mc-text">${choice.text}</div>
-            </div>
-        `;
+
+        const indicator = document.createElement("div");
+        indicator.className = "mc-indicator";
+        indicator.textContent = allowMultiple ? '' : choice.id.toUpperCase();
+        btn.appendChild(indicator);
+
+        const content = document.createElement("div");
+        content.className = "mc-content";
+        content.style.display = "flex";
+        content.style.flexDirection = "column";
+        content.style.gap = "8px";
+        content.style.flex = "1";
+
+        if (choice.image && isSafeUrl(choice.image)) {
+            const img = document.createElement("img");
+            img.src = choice.image;
+            img.style.maxHeight = "120px";
+            img.style.width = "auto";
+            img.style.alignSelf = "flex-start";
+            img.style.borderRadius = "4px";
+            content.appendChild(img);
+        }
+
+        const text = document.createElement("div");
+        text.className = "mc-text";
+        text.textContent = choice.text;
+        content.appendChild(text);
+
+        btn.appendChild(content);
 
         if (Array.isArray(currentAnswer) && currentAnswer.includes(choice.id)) {
             btn.classList.add("selected");
@@ -192,7 +269,10 @@ function renderFillBlank(q: Question): void {
     for (let i = 0; i < blankCount; i++) {
         const row = document.createElement("div");
         row.className = "blank-row";
-        row.innerHTML = `<span class="blank-label">${i + 1}:</span>`;
+        const label = document.createElement("span");
+        label.className = "blank-label";
+        label.textContent = `${i + 1}:`;
+        row.appendChild(label);
 
         const input = document.createElement("input");
         input.type = "text";
@@ -292,7 +372,7 @@ function renderImageUpload(q: Question): void {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentAnswer = quiz?.userAnswers.get(q.id); // base64
 
-    if (currentAnswer) {
+    if (currentAnswer && isSafeUrl(currentAnswer)) {
         const img = document.createElement("img");
         img.src = currentAnswer;
         img.className = "uploaded-preview";
