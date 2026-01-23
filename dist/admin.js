@@ -1,13 +1,13 @@
 import { quiz } from "./state.js";
 import { getRequiredElement } from "./dom.js";
-import { generateQuizId, saveQuizToStorage } from "./storage.js";
+import { generateQuizId, saveQuizToStorage, saveImageRegistry } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
 import { t, updatePageLanguage } from "./i18n.js";
 // Admin UI state
 let adminMode = false;
 let adminQuiz = null;
-// Admin DOM elements (will be set after DOM loads)
+// Admin DOM elements
 let adminToggle;
 let adminPanel;
 let adminQuizTitle;
@@ -53,18 +53,14 @@ export function setupAdmin(callbacks) {
     adminQuizMode = getRequiredElement("admin-quiz-mode");
     adminShuffleQuestions = getRequiredElement("admin-shuffle-questions");
     adminShuffleAnswers = getRequiredElement("admin-shuffle-answers");
-    // Segmented control events
     setupSegmentedControl();
-    // Hide admin toggle by default (only show if admin access allowed)
     if (!isAdminAccessAllowed()) {
         adminToggle.style.display = "none";
     }
-    // Wire up events immediately
     setupAdminEventsInternal();
 }
 // Toggle admin mode
 export function toggleAdminMode() {
-    // Require password unless already authenticated
     if (!isAdminAccessAllowed()) {
         if (!promptAdminPassword())
             return;
@@ -73,7 +69,6 @@ export function toggleAdminMode() {
     adminPanel.style.display = adminMode ? "block" : "none";
     adminToggle.textContent = adminMode ? t('admin.playerMode') : t('admin.adminMode');
     if (adminMode) {
-        // Initialize admin quiz from current quiz or create new
         if (quiz) {
             adminQuiz = { ...quiz.quiz };
         }
@@ -92,7 +87,6 @@ export function renderAdminForm() {
     if (!adminQuiz)
         return;
     adminQuizTitle.value = adminQuiz.title;
-    // Set timer defaults
     if (!adminQuiz.timerConfig) {
         adminTimerMode.value = "question";
         adminTimerLimit.value = "30";
@@ -101,31 +95,15 @@ export function renderAdminForm() {
         adminTimerMode.value = adminQuiz.timerConfig.mode;
         adminTimerLimit.value = String(adminQuiz.timerConfig.limitSeconds);
     }
-    // Global settings
     adminQuizMode.value = adminQuiz.mode || "practice";
     adminShuffleQuestions.checked = adminQuiz.shuffleConfig?.questions || false;
     adminShuffleAnswers.checked = adminQuiz.shuffleConfig?.answers || false;
-    // Show results setting
     const currentVal = adminQuiz.showDetailedResults !== false ? "detailed" : "score";
     adminShowResultsValue.value = currentVal;
     updateSegmentedUI(currentVal);
-    // Toggle time limit visibility based on mode
-    try {
-        updateTimerLimitVisibility();
-    }
-    catch (e) {
-        console.error("Timer vis error", e);
-    }
-    // Ensure localized strings are up to date
+    updateTimerLimitVisibility();
     updatePageLanguage();
-    adminTimerMode.onchange = () => {
-        try {
-            updateTimerLimitVisibility();
-        }
-        catch (e) {
-            alert(t('admin.timerUpdateError') + ": " + e);
-        }
-    };
+    adminTimerMode.onchange = () => updateTimerLimitVisibility();
     adminQuestionsList.innerHTML = "";
     adminQuiz.questions.forEach((q, qIdx) => {
         const qDiv = document.createElement("div");
@@ -149,7 +127,7 @@ export function renderAdminForm() {
       <div class="admin-q-image-area" style="margin-bottom: 15px;">
         ${q.image ? `
           <div style="position: relative; display: inline-block;">
-            <img src="${q.image}" style="max-height: 120px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);" />
+            <img src="${q.image.startsWith("data:") ? q.image : "data:image/jpeg;base64," + q.image}" style="max-height: 120px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);" />
             <button class="admin-remove-q-image btn btn-danger btn-icon" data-qidx="${qIdx}" 
                     style="position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; padding: 0; min-width: 24px; font-size: 10px;">✕</button>
           </div>
@@ -174,20 +152,15 @@ export function renderAdminForm() {
       </div>
     `;
         adminQuestionsList.appendChild(qDiv);
-        // Wire up type selector
         const typeSelector = qDiv.querySelector('.admin-q-type-selector');
         typeSelector.onchange = () => {
             if (!adminQuiz)
                 return;
-            updateQuizFromDOM(); // Sync current inputs
+            updateQuizFromDOM();
             const newType = typeSelector.value;
             adminQuiz.questions[qIdx].type = newType;
-            // Initialize basic data for type
             if (newType === 'multiple-choice') {
-                adminQuiz.questions[qIdx].choices = [
-                    { id: 'a', text: '', isCorrect: true },
-                    { id: 'b', text: '', isCorrect: false }
-                ];
+                adminQuiz.questions[qIdx].choices = [{ id: 'a', text: '', isCorrect: true }, { id: 'b', text: '', isCorrect: false }];
             }
             else if (newType === 'numeric') {
                 adminQuiz.questions[qIdx].correctAnswerNumber = 0;
@@ -197,22 +170,10 @@ export function renderAdminForm() {
             }
             renderAdminForm();
         };
-        // Reactive listener for MCQ multiple-answer toggle
-        qDiv.querySelector('.admin-mc-multiple')?.addEventListener('change', () => {
-            if (!adminQuiz)
-                return;
-            updateQuizFromDOM();
-            renderAdminForm(); // re-render to switch radio/checkbox
-        });
-        // Numeric change listeners
-        qDiv.querySelectorAll('.admin-num-answer, .admin-num-tolerance, .admin-num-tolerance-type').forEach(input => {
-            input.addEventListener('change', () => updateQuizFromDOM());
-        });
-        // Blank answers listener
-        qDiv.querySelectorAll('.admin-blank-answer').forEach(input => {
+        qDiv.querySelector('.admin-mc-multiple')?.addEventListener('change', () => { updateQuizFromDOM(); renderAdminForm(); });
+        qDiv.querySelectorAll('.admin-num-answer, .admin-num-tolerance, .admin-num-tolerance-type, .admin-blank-answer').forEach(input => {
             input.addEventListener('input', () => updateQuizFromDOM());
         });
-        // Prompt listener (needed for state sync and detecting ___ for blanks)
         qDiv.querySelector('.admin-question-prompt')?.addEventListener('input', (e) => {
             if (!adminQuiz)
                 return;
@@ -220,19 +181,12 @@ export function renderAdminForm() {
             const prompt = target.value;
             const oldBlankCount = (adminQuiz.questions[qIdx].prompt.match(/___/g) || []).length;
             const newBlankCount = (prompt.match(/___/g) || []).length;
+            adminQuiz.questions[qIdx].prompt = prompt;
             if (adminQuiz.questions[qIdx].type === 'fill-blank' && oldBlankCount !== newBlankCount) {
-                adminQuiz.questions[qIdx].prompt = prompt;
-                renderAdminForm(); // Re-render to show correct number of blank inputs
-            }
-            else {
-                adminQuiz.questions[qIdx].prompt = prompt;
+                renderAdminForm();
             }
         });
-        // Reactive Choice Text listeners
-        qDiv.querySelectorAll('.admin-choice-text').forEach(input => {
-            input.addEventListener('input', () => updateQuizFromDOM());
-        });
-        // Blank Insert Button logic
+        qDiv.querySelectorAll('.admin-choice-text').forEach(input => input.addEventListener('input', () => updateQuizFromDOM()));
         qDiv.querySelector('.admin-insert-blank-btn')?.addEventListener('click', () => {
             const promptEl = qDiv.querySelector('.admin-question-prompt');
             const start = promptEl.selectionStart;
@@ -241,25 +195,19 @@ export function renderAdminForm() {
             promptEl.value = text.substring(0, start) + "___" + text.substring(end);
             promptEl.focus();
             promptEl.setSelectionRange(start + 3, start + 3);
-            // Trigger the input event manually to generate new blank inputs
             promptEl.dispatchEvent(new Event('input', { bubbles: true }));
         });
-        // Wire up MCQ specific events if it's MC
         if (q.type === 'multiple-choice' || !q.type) {
-            qDiv.querySelector(`.admin-add-choice-btn[data-qidx="${qIdx}"]`)?.addEventListener("click", () => {
+            qDiv.querySelector(`.admin-add-choice-btn`)?.addEventListener("click", () => {
                 if (!adminQuiz)
                     return;
                 updateQuizFromDOM();
                 if (!adminQuiz.questions[qIdx].choices)
                     adminQuiz.questions[qIdx].choices = [];
-                adminQuiz.questions[qIdx].choices.push({
-                    id: String.fromCharCode(97 + adminQuiz.questions[qIdx].choices.length),
-                    text: "",
-                    isCorrect: false,
-                });
+                adminQuiz.questions[qIdx].choices.push({ id: String.fromCharCode(97 + adminQuiz.questions[qIdx].choices.length), text: "", isCorrect: false });
                 renderAdminForm();
             });
-            const choicesList = qDiv.querySelector(`.admin-choices-list[data-qidx="${qIdx}"]`);
+            const choicesList = qDiv.querySelector(`.admin-choices-list`);
             choicesList.querySelectorAll(`.admin-remove-choice-btn`).forEach((btn) => {
                 btn.addEventListener("click", (e) => {
                     if (!adminQuiz)
@@ -276,23 +224,20 @@ export function renderAdminForm() {
                 input.addEventListener("change", (e) => {
                     if (!adminQuiz)
                         return;
-                    updateQuizFromDOM(); // SYNC FIRST before potentially re-rendering
+                    updateQuizFromDOM();
                     const target = e.target;
-                    const cIdx = parseInt(target.dataset.cidx);
+                    const idx = parseInt(target.dataset.cidx);
                     const allowMultiple = adminQuiz.questions[qIdx].allowMultipleAnswers;
                     if (!allowMultiple) {
-                        adminQuiz.questions[qIdx].choices.forEach((c, idx) => {
-                            c.isCorrect = idx === cIdx;
-                        });
-                        renderAdminForm(); // re-render to update radios
+                        adminQuiz.questions[qIdx].choices.forEach((c, cIdx) => c.isCorrect = idx === cIdx);
+                        renderAdminForm();
                     }
                     else {
-                        adminQuiz.questions[qIdx].choices[cIdx].isCorrect = target.checked;
+                        adminQuiz.questions[qIdx].choices[idx].isCorrect = target.checked;
                     }
                 });
             });
         }
-        // Wire up T/F radio events
         if (q.type === 'true-false') {
             qDiv.querySelectorAll(`input[name="tf_${qIdx}"]`).forEach(radio => {
                 radio.addEventListener('change', (e) => {
@@ -302,8 +247,7 @@ export function renderAdminForm() {
                 });
             });
         }
-        // Wire up remove queston
-        qDiv.querySelector(`.admin-remove-question-btn[data-qidx="${qIdx}"]`).addEventListener("click", () => {
+        qDiv.querySelector(`.admin-remove-question-btn`).addEventListener("click", () => {
             if (!adminQuiz)
                 return;
             if (!confirm(t('admin.confirmRemoveQuestion')))
@@ -312,7 +256,6 @@ export function renderAdminForm() {
             adminQuiz.questions.splice(qIdx, 1);
             renderAdminForm();
         });
-        // Question Image Listeners
         qDiv.querySelector('.admin-add-q-image')?.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -321,7 +264,7 @@ export function renderAdminForm() {
                 const file = e.target.files?.[0];
                 if (file && adminQuiz) {
                     try {
-                        const resizedBase64 = await resizeImage(file, 800);
+                        const resizedBase64 = await resizeImage(file, 640);
                         adminQuiz.questions[qIdx].image = resizedBase64;
                         renderAdminForm();
                     }
@@ -338,7 +281,6 @@ export function renderAdminForm() {
                 renderAdminForm();
             }
         });
-        // Choice Image Listeners
         qDiv.querySelectorAll('.admin-choice-add-image').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const cIdx = parseInt(e.currentTarget.dataset.cidx);
@@ -349,7 +291,7 @@ export function renderAdminForm() {
                     const file = ev.target.files?.[0];
                     if (file && adminQuiz) {
                         try {
-                            const resizedBase64 = await resizeImage(file, 600);
+                            const resizedBase64 = await resizeImage(file, 480);
                             adminQuiz.questions[qIdx].choices[cIdx].image = resizedBase64;
                             renderAdminForm();
                         }
@@ -387,22 +329,15 @@ function renderQuestionConfig(q, qIdx) {
           ${(q.choices || []).map((choice, cIdx) => `
             <div class="admin-choice-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="${q.allowMultipleAnswers ? 'checkbox' : 'radio'}" 
-                       name="correct_${qIdx}" 
-                       data-qidx="${qIdx}" 
-                       data-cidx="${cIdx}" 
-                       ${choice.isCorrect ? 'checked' : ''} />
+                <input type="${q.allowMultipleAnswers ? 'checkbox' : 'radio'}" name="correct_${qIdx}" ${choice.isCorrect ? 'checked' : ''} data-cidx="${cIdx}" />
                 <input type="text" class="admin-choice-text" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" style="flex:1;" />
-                <button class="admin-choice-add-image btn btn-icon" data-qidx="${qIdx}" data-cidx="${cIdx}" style="font-size: 1rem; padding: 4px 8px;" title="${t('admin.addImage')}">🖼</button>
-                <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-qidx="${qIdx}" data-cidx="${cIdx}">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
+                <button class="admin-choice-add-image btn btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">🖼</button>
+                <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-cidx="${cIdx}">✕</button>
               </div>
               ${choice.image ? `
                 <div style="margin-left: 30px; position: relative; display: inline-block;">
-                  <img src="${choice.image}" style="max-height: 80px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05);" />
-                  <button class="admin-choice-remove-image btn btn-danger" data-qidx="${qIdx}" data-cidx="${cIdx}" 
-                          style="position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; padding:0; min-width: 18px; font-size: 8px;">✕</button>
+                  <img src="${choice.image.startsWith("data:") ? choice.image : "data:image/jpeg;base64," + choice.image}" style="max-height: 80px; border-radius: 4px;" />
+                  <button class="admin-choice-remove-image btn btn-danger" data-cidx="${cIdx}" style="position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; padding:0; min-width: 18px; font-size: 8px;">✕</button>
                 </div>
               ` : ''}
             </div>
@@ -422,7 +357,7 @@ function renderQuestionConfig(q, qIdx) {
             <input type="number" class="admin-num-tolerance" data-qidx="${qIdx}" value="${q.toleranceValue ?? 0}" style="width: 100%; padding: 8px;" />
           </div>
           <div style="flex: 1;">
-            <select class="admin-num-tolerance-type" data-qidx="${qIdx}" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.2); color:white; border: 1px solid rgba(255,255,255,0.1);">
+            <select class="admin-num-tolerance-type" data-qidx="${qIdx}" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.2); color:white;">
               <option value="absolute" ${q.toleranceType === 'absolute' ? 'selected' : ''}>${t('admin.tolAbs')}</option>
               <option value="percentage" ${q.toleranceType === 'percentage' ? 'selected' : ''}>${t('admin.tolPct')}</option>
             </select>
@@ -430,22 +365,17 @@ function renderQuestionConfig(q, qIdx) {
         </div>
       `;
         case 'fill-blank': {
-            // Count ___ in prompt to show enough input fields
             const blankCount = (q.prompt.match(/___/g) || []).length;
             return `
         <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
-          <button class="btn btn-secondary btn-icon admin-insert-blank-btn" data-qidx="${qIdx}" style="font-size: 0.8rem;">
-            ➕ ${t('admin.insertBlank') || 'Įterpti tarpą (___)'}
-          </button>
-          <span style="font-size: 0.8rem; color: #fbbf24;">💡 ${t('admin.blankHint') || 'Naudokite ___ tarpams sukurti.'}</span>
+          <button class="btn btn-secondary btn-icon admin-insert-blank-btn" style="font-size: 0.8rem;">➕ ${t('admin.insertBlank')}</button>
+          <span style="font-size: 0.8rem; color: #fbbf24;">💡 ${t('admin.blankHint')}</span>
         </div>
         <div class="admin-blanks-list" data-qidx="${qIdx}" style="display: flex; flex-direction: column; gap: 12px;">
           ${Array.from({ length: blankCount }).map((_, bIdx) => `
-            <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 12px;">
               <span style="font-size: 0.9rem; font-weight: bold; color: var(--accent); min-width: 90px;">Laukas ${bIdx + 1}:</span>
-              <input type="text" class="admin-blank-answer" data-qidx="${qIdx}" data-bidx="${bIdx}" 
-                     placeholder="Įveskite teisingą atsakymą..."
-                     value="${q.blankAnswers?.[bIdx] || ''}" style="flex:1; padding: 10px; border-radius: 4px; background: rgba(0,0,0,0.2); color:white; border: 1px solid rgba(255,255,255,0.1);" />
+              <input type="text" class="admin-blank-answer" data-qidx="${qIdx}" data-bidx="${bIdx}" value="${q.blankAnswers?.[bIdx] || ''}" style="flex:1; padding: 10px; background: rgba(0,0,0,0.2); color:white;" />
             </div>
           `).join('')}
           ${blankCount === 0 ? `<p style="color: #ff9800; font-size: 0.85rem;">! Nepamirškite klausime įrašyti ___</p>` : ''}
@@ -473,33 +403,20 @@ function renderQuestionConfig(q, qIdx) {
             ${t('admin.longAnswer')}
           </label>
           <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.keywords')}</label>
-          <input type="text" class="admin-text-keywords" data-qidx="${qIdx}" value="${(q.expectedKeywords || []).join(', ')}" placeholder="keyword1, keyword2..." style="width: 100%; padding: 8px;" />
+          <input type="text" class="admin-text-keywords" data-qidx="${qIdx}" value="${(q.expectedKeywords || []).join(', ')}" style="width: 100%; padding: 8px;" />
         </div>
       `;
         case 'image-upload':
-            return `
-        <div style="background: rgba(139, 92, 246, 0.1); border: 1px dashed var(--accent); padding: 15px; border-radius: 8px; text-align: center;">
-          <p style="margin:0; font-size: 0.9rem;">${t('admin.imageUploadHint') || 'Studentas matys mygtuką nuotraukos įkėlimui. Vertinama bus rankiniu būdu.'}</p>
-        </div>
-      `;
-        default:
-            return '';
+            return `<div style="background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 8px; text-align: center;"><p style="margin:0; font-size: 0.9rem;">${t('admin.imageUploadHint')}</p></div>`;
+        default: return '';
     }
 }
-// Helper to sync DOM to State
 function updateQuizFromDOM() {
     if (!adminQuiz)
         return;
-    if (adminQuizTitle)
-        adminQuiz.title = adminQuizTitle.value;
-    if (adminQuizMode)
-        adminQuiz.mode = adminQuizMode.value;
-    if (adminShuffleQuestions && adminShuffleAnswers) {
-        adminQuiz.shuffleConfig = {
-            questions: adminShuffleQuestions.checked,
-            answers: adminShuffleAnswers.checked
-        };
-    }
+    adminQuiz.title = adminQuizTitle.value;
+    adminQuiz.mode = adminQuizMode.value;
+    adminQuiz.shuffleConfig = { questions: adminShuffleQuestions.checked, answers: adminShuffleAnswers.checked };
     adminQuestionsList.querySelectorAll(".admin-question-item").forEach((qDiv) => {
         const promptArea = qDiv.querySelector(".admin-question-prompt");
         if (!promptArea)
@@ -512,358 +429,230 @@ function updateQuizFromDOM() {
         const typeSelector = qDiv.querySelector(".admin-q-type-selector");
         if (typeSelector)
             q.type = typeSelector.value;
-        // Sync type-specific values with null-safety
         switch (q.type) {
             case 'multiple-choice':
-                const multipleToggle = qDiv.querySelector(".admin-mc-multiple");
-                if (multipleToggle)
-                    q.allowMultipleAnswers = multipleToggle.checked;
+                const multToggle = qDiv.querySelector(".admin-mc-multiple");
+                if (multToggle)
+                    q.allowMultipleAnswers = multToggle.checked;
                 qDiv.querySelectorAll(".admin-choice-text").forEach((input) => {
-                    const cIdx = parseInt(input.dataset.cidx);
-                    if (q.choices && q.choices[cIdx]) {
-                        q.choices[cIdx].text = input.value;
-                    }
+                    const idx = parseInt(input.dataset.cidx);
+                    if (q.choices?.[idx])
+                        q.choices[idx].text = input.value;
                 });
                 break;
             case 'numeric':
-                const numAns = qDiv.querySelector(".admin-num-answer");
-                const numTol = qDiv.querySelector(".admin-num-tolerance");
-                const numTolType = qDiv.querySelector(".admin-num-tolerance-type");
-                if (numAns)
-                    q.correctAnswerNumber = parseFloat(numAns.value);
-                if (numTol)
-                    q.toleranceValue = parseFloat(numTol.value);
-                if (numTolType)
-                    q.toleranceType = numTolType.value;
+                q.correctAnswerNumber = parseFloat(qDiv.querySelector(".admin-num-answer")?.value);
+                q.toleranceValue = parseFloat(qDiv.querySelector(".admin-num-tolerance")?.value);
+                q.toleranceType = qDiv.querySelector(".admin-num-tolerance-type")?.value;
                 break;
             case 'fill-blank':
-                q.blankAnswers = Array.from(qDiv.querySelectorAll(".admin-blank-answer")).map(input => input.value);
+                q.blankAnswers = Array.from(qDiv.querySelectorAll(".admin-blank-answer")).map(i => i.value);
                 break;
             case 'true-false':
-                const radioChecked = qDiv.querySelector(`input[name="tf_${qIdx}"]:checked`);
-                if (radioChecked)
-                    q.isTrue = radioChecked.value === 'true';
+                const checked = qDiv.querySelector(`input[name="tf_${qIdx}"]:checked`);
+                if (checked)
+                    q.isTrue = checked.value === 'true';
                 break;
             case 'text':
-                const textLong = qDiv.querySelector(".admin-text-long");
-                const kwInput = qDiv.querySelector(".admin-text-keywords");
-                if (textLong)
-                    q.isLongAnswer = textLong.checked;
-                if (kwInput)
-                    q.expectedKeywords = kwInput.value.split(',').map(s => s.trim()).filter(s => s);
+                q.isLongAnswer = qDiv.querySelector(".admin-text-long")?.checked;
+                q.expectedKeywords = qDiv.querySelector(".admin-text-keywords")?.value.split(',').map(s => s.trim()).filter(s => s);
                 break;
         }
     });
 }
 function updateTimerLimitVisibility() {
-    const limitContainer = adminTimerLimit.parentElement;
-    if (adminTimerMode.value === "none") {
-        limitContainer.style.display = "none";
-    }
-    else {
-        limitContainer.style.display = "block";
-    }
+    const parent = adminTimerLimit.parentElement;
+    if (parent)
+        parent.style.display = adminTimerMode.value === "none" ? "none" : "block";
 }
-// Save admin quiz
 export function saveAdminQuiz() {
     if (!adminQuiz)
         return;
-    // Collect form data
-    adminQuiz.title = adminQuizTitle.value.trim() || t('admin.untitledQuiz');
-    // Save timer config
-    adminQuiz.timerConfig = {
-        mode: adminTimerMode.value,
-        limitSeconds: parseInt(adminTimerLimit.value) || 30
-    };
-    // Save show results toggle
-    adminQuiz.showDetailedResults = adminShowResultsValue.value === "detailed";
-    // Sync from DOM
     updateQuizFromDOM();
-    // Validate
     if (adminQuiz.questions.length === 0) {
         alert(t('admin.errorNoQuestions'));
         return;
     }
-    for (const q of adminQuiz.questions) {
-        if (!q.prompt.trim()) {
-            alert(t('admin.errorNoPrompt'));
-            return;
-        }
-        const qType = q.type || 'multiple-choice';
-        if (qType === 'multiple-choice') {
-            if (!q.choices || q.choices.length < 2) {
-                alert(t('admin.errorNoChoices'));
-                return;
-            }
-            if (!q.choices.some((c) => c.isCorrect)) {
-                alert(t('admin.errorNoCorrect'));
-                return;
-            }
-        }
-        else if (qType === 'numeric') {
-            if (q.correctAnswerNumber === undefined || isNaN(q.correctAnswerNumber)) {
-                alert('Please enter a valid numeric answer.');
-                return;
-            }
-        }
-        else if (qType === 'fill-blank') {
-            const blankCount = (q.prompt.match(/___/g) || []).length;
-            if (blankCount > 0 && (!q.blankAnswers || q.blankAnswers.length < blankCount || q.blankAnswers.some(a => !a.trim()))) {
-                alert('Please fill in all blank answers.');
-                return;
-            }
-        }
-    }
-    // Save to localStorage
     saveQuizToStorage(adminQuiz);
-    // Generate share code (UTF-8 safe base64 JSON)
-    const jsonStr = JSON.stringify(adminQuiz);
-    const bytes = new TextEncoder().encode(jsonStr);
+    const quizToShare = JSON.parse(JSON.stringify(adminQuiz));
+    const imageRegistry = {};
+    let imgCounter = 1;
+    quizToShare.questions.forEach(q => {
+        if (q.image && q.image.startsWith("data:")) {
+            const imgId = `img${imgCounter++}`;
+            imageRegistry[imgId] = q.image;
+            q.image = `local:${imgId}`;
+        }
+        q.choices?.forEach(c => {
+            if (c.image && c.image.startsWith("data:")) {
+                const imgId = `img${imgCounter++}`;
+                imageRegistry[imgId] = c.image;
+                c.image = `local:${imgId}`;
+            }
+        });
+    });
+    // Save image registry to localStorage (Approach #2)
+    saveImageRegistry(adminQuiz.id, imageRegistry);
+    const bytes = new TextEncoder().encode(JSON.stringify(quizToShare));
     let binary = "";
     for (let i = 0; i < bytes.length; i++)
         binary += String.fromCharCode(bytes[i]);
     const shareCode = btoa(binary);
-    if (shareCode.length > 8000) {
-        alert("WARNING: Your quiz contains a lot of image data. The share URL might be too long for some browsers. Try removing images if the link doesn't work.");
-    }
-    const shareUrl = `${window.location.origin}${window.location.pathname}?quiz=${shareCode}`;
-    const dashboardUrl = `${window.location.origin}${window.location.pathname}?dashboard=${adminQuiz.id}`;
+    if (shareCode.length > 8000)
+        alert("WARNING: Quiz data very large. URL might fail.");
+    const base = window.location.origin + window.location.pathname;
+    const shareUrl = `${base}?quiz=${shareCode}`;
+    const dashUrl = `${base}?dashboard=${adminQuiz.id}`;
     adminShareCode.style.display = "block";
     adminShareCode.innerHTML = `
-    <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); padding: 15px; border-radius: 8px; margin-top: 15px;">
-      <strong style="color: #4CAF50;">✓ ${t('admin.saveSuccess')}</strong><br><br>
-      
-      <div style="margin-bottom: 15px;">
-        <label style="display: block; margin-bottom: 5px; font-weight: bold;">${t('admin.studentUrl')}:</label>
-        <div style="display: flex; gap: 10px;">
-          <input type="text" readonly value="${shareUrl}" id="share-url-input" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--bg); color: var(--text); font-size: 0.9rem;" />
-          <button id="copy-share-url" class="btn btn-secondary" style="white-space: nowrap;">📋 ${t('admin.copy')}</button>
-        </div>
-      </div>
-
-      <div style="margin-bottom: 15px;">
-        <label style="display: block; margin-bottom: 5px; font-weight: bold;">${t('admin.dashboardUrl')}:</label>
-        <div style="display: flex; gap: 10px;">
-          <input type="text" readonly value="${dashboardUrl}" id="dash-url-input" style="flex: 1; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: var(--bg); color: var(--text); font-size: 0.9rem;" />
-          <button id="copy-dash-url" class="btn btn-secondary" style="white-space: nowrap;">📋 ${t('admin.copy')}</button>
-        </div>
-      </div>
-
-      <label style="display: block; margin-bottom: 5px; font-weight: bold;">${t('admin.quizId')}:</label>
-      <code style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; display: inline-block;">${adminQuiz.id}</code>
-    </div>
-  `;
-    // Wire up share copy button
-    const copyBtn = document.getElementById('copy-share-url');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-            const input = document.getElementById('share-url-input');
-            input.select();
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                copyBtn.textContent = '✓ Copied!';
-                setTimeout(() => { copyBtn.textContent = '📋 Copy'; }, 2000);
-            });
-        });
-    }
-    // Wire up dashboard copy button
-    const dashCopyBtn = document.getElementById('copy-dash-url');
-    if (dashCopyBtn) {
-        dashCopyBtn.addEventListener('click', () => {
-            const input = document.getElementById('dash-url-input');
-            input.select();
-            navigator.clipboard.writeText(dashboardUrl).then(() => {
-                dashCopyBtn.textContent = '✓ Copied!';
-                setTimeout(() => { dashCopyBtn.textContent = '📋 Copy'; }, 2000);
-            });
-        });
-    }
-    // NO AUTO-CLOSE - keep admin panel open for user convenience
+        <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); padding: 15px; border-radius: 8px;">
+            <strong style="color: #4CAF50;">✓ ${t('admin.saveSuccess')}</strong><br><br>
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; font-weight: bold;">Student URL:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" readonly value="${shareUrl}" id="share-url-input" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1);" />
+                    <button id="copy-share-btn" class="btn btn-secondary">Copy</button>
+                </div>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; font-weight: bold;">Dashboard URL:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" readonly value="${dashUrl}" id="dash-url-input" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1);" />
+                    <button id="copy-dash-btn" class="btn btn-secondary">Copy</button>
+                </div>
+            </div>
+            <div><label style="display: block; font-weight: bold;">Quiz ID:</label><code>${adminQuiz.id}</code></div>
+        </div>`;
+    document.getElementById('copy-share-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('share-url-input');
+        input.select();
+        navigator.clipboard.writeText(shareUrl);
+        alert("Copied!");
+    });
+    document.getElementById('copy-dash-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('dash-url-input');
+        input.select();
+        navigator.clipboard.writeText(dashUrl);
+        alert("Copied!");
+    });
 }
-// Handle OCR file upload
-export async function handleOCRUpload(event) {
-    const input = event.target;
-    const file = input.files?.[0];
-    if (!file)
+async function handleOCRUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file || !adminQuiz)
         return;
-    // Show loading state
-    adminScanQuestionBtn.disabled = true;
     adminScanQuestionBtn.textContent = "Processing...";
     try {
         const result = await processOCRImage(file);
-        if (result && adminQuiz) {
-            // Add scanned question to quiz
-            adminQuiz.questions.push({
-                id: `q${adminQuiz.questions.length + 1}`,
-                prompt: result.prompt,
-                choices: result.choices.map((text, idx) => ({
-                    id: String.fromCharCode(97 + idx), // a, b, c, d...
-                    text: text,
-                    isCorrect: idx === 0, // First choice is correct by default (admin can change)
-                })),
-            });
+        if (result) {
+            adminQuiz.questions.push({ id: `q${adminQuiz.questions.length + 1}`, prompt: result.prompt, choices: result.choices.map((t, i) => ({ id: String.fromCharCode(97 + i), text: t, isCorrect: i === 0 })) });
             renderAdminForm();
-            alert("Question added from scan! Review and mark the correct answer.");
         }
     }
-    catch (error) {
-        console.error("OCR error:", error);
-        alert("Error processing image. Please try again or type manually.");
+    catch (e) {
+        alert("OCR failed");
     }
     finally {
-        adminScanQuestionBtn.disabled = false;
-        adminScanQuestionBtn.textContent = "Scan Question (OCR)";
-        input.value = ""; // Reset file input
+        adminScanQuestionBtn.textContent = t('admin.scanOCR');
     }
 }
-// Wire up admin events (call after DOM is ready)
 function setupAdminEventsInternal() {
     adminToggle.addEventListener("click", toggleAdminMode);
     adminAddQuestionBtn.addEventListener("click", () => {
-        try {
-            if (!adminQuiz) {
-                adminQuiz = {
-                    id: generateQuizId(),
-                    title: "New Quiz",
-                    questions: [],
-                };
-            }
-            // Sync before adding
-            if (adminQuiz.questions.length > 0) {
-                updateQuizFromDOM();
-            }
-            adminQuiz.questions.push({
-                id: `q${adminQuiz.questions.length + 1}`,
-                prompt: "",
-                choices: [
-                    { id: "a", text: "", isCorrect: true },
-                    { id: "b", text: "", isCorrect: false },
-                ],
-            });
-            renderAdminForm();
-        }
-        catch (e) {
-            console.error(e);
-            alert("Error adding question: " + e);
-        }
+        if (!adminQuiz)
+            adminQuiz = { id: generateQuizId(), title: "New Quiz", questions: [] };
+        updateQuizFromDOM();
+        adminQuiz.questions.push({ id: `q${adminQuiz.questions.length + 1}`, prompt: "", choices: [{ id: "a", text: "", isCorrect: true }, { id: "b", text: "", isCorrect: false }] });
+        renderAdminForm();
     });
-    // OCR button triggers file input
-    adminScanQuestionBtn.addEventListener("click", () => {
-        adminOcrInput.click();
-    });
-    // Handle file selection
+    adminScanQuestionBtn.addEventListener("click", () => adminOcrInput.click());
     adminOcrInput.addEventListener("change", handleOCRUpload);
     adminSaveBtn.addEventListener("click", saveAdminQuiz);
-    // Reactive listeners for global settings
-    adminQuizMode.addEventListener('change', () => { if (adminQuiz)
-        adminQuiz.mode = adminQuizMode.value; });
-    adminShuffleQuestions.addEventListener('change', () => {
-        if (adminQuiz) {
-            adminQuiz.shuffleConfig = {
-                questions: adminShuffleQuestions.checked,
-                answers: adminQuiz.shuffleConfig?.answers || false
-            };
-        }
-    });
-    adminShuffleAnswers.addEventListener('change', () => {
-        if (adminQuiz) {
-            adminQuiz.shuffleConfig = {
-                questions: adminQuiz.shuffleConfig?.questions || false,
-                answers: adminShuffleAnswers.checked
-            };
-        }
-    });
-    adminTimerMode.addEventListener('change', () => {
-        if (adminQuiz) {
-            adminQuiz.timerConfig = { ...adminQuiz.timerConfig, mode: adminTimerMode.value, limitSeconds: parseInt(adminTimerLimit.value) };
-            updateTimerLimitVisibility();
-        }
-    });
-    adminTimerLimit.addEventListener('change', () => {
-        if (adminQuiz && adminQuiz.timerConfig)
-            adminQuiz.timerConfig.limitSeconds = parseInt(adminTimerLimit.value);
-    });
-    // Export
     adminExportBtn.addEventListener("click", () => {
         if (!adminQuiz)
             return;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(adminQuiz, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", (adminQuiz.title || "quiz") + ".json");
-        document.body.appendChild(downloadAnchorNode); // required for firefox
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const blob = new Blob([JSON.stringify(adminQuiz, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'quiz.json';
+        a.click();
     });
-    // Import
-    adminImportBtn.addEventListener("click", () => {
-        adminImportInput.click();
-    });
+    adminImportBtn.addEventListener("click", () => adminImportInput.click());
     adminImportInput.addEventListener("change", (e) => {
         const file = e.target.files?.[0];
         if (!file)
             return;
         const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const json = JSON.parse(event.target?.result);
-                if (json && json.questions) {
-                    adminQuiz = json;
-                    // Ensure ID exists
-                    if (!adminQuiz.id)
-                        adminQuiz.id = crypto.randomUUID();
-                    renderAdminForm();
-                    alert(t('admin.importSuccess'));
-                }
-                else {
-                    alert(t('admin.importInvalid'));
-                }
+        reader.onload = (ev) => { try {
+            const json = JSON.parse(ev.target?.result);
+            if (json.questions) {
+                adminQuiz = json;
+                renderAdminForm();
             }
-            catch (err) {
-                alert(t('admin.importError'));
-            }
-        };
-        reader.readAsText(file);
-        e.target.value = ""; // Reset
-    });
-    adminCancelBtn.addEventListener("click", () => {
-        if (confirm(t('admin.confirmCancel'))) {
-            toggleAdminMode();
         }
+        catch (e) {
+            alert("Import failed");
+        } };
+        reader.readAsText(file);
     });
-    const backBtn = document.getElementById("admin-btn-back");
-    if (backBtn) {
-        backBtn.addEventListener("click", () => {
-            adminPanel.style.display = "none";
-            adminToggle.textContent = "Admin Mode"; // Reset toggle text if needed, or rely on toggleAdminMode logic if we used it.
-            // Actually better to just hide panel and show menu, but we need to ensure adminMode state is consistent.
-            // If we just hide, adminMode var is still true.
-            // Let's call toggleAdminMode() if it is open?
-            // Or just reset state manually.
-            if (adminMode)
-                toggleAdminMode(); // This will close it and update state/text
-            goHome();
-        });
-    }
+    adminCancelBtn.addEventListener("click", () => { if (confirm(t('admin.confirmCancel')))
+        toggleAdminMode(); });
+    document.getElementById("admin-btn-back")?.addEventListener("click", () => {
+        if (adminMode)
+            toggleAdminMode();
+        goHome();
+    });
 }
 function setupSegmentedControl() {
-    const buttons = adminResultGroup.querySelectorAll(".segment-btn");
-    buttons.forEach(btn => {
+    adminResultGroup.querySelectorAll(".segment-btn").forEach(btn => {
         btn.addEventListener("click", () => {
             const val = btn.getAttribute("data-value") || "detailed";
             adminShowResultsValue.value = val;
             updateSegmentedUI(val);
+            if (adminQuiz)
+                adminQuiz.showDetailedResults = val === "detailed";
         });
     });
 }
 function updateSegmentedUI(value) {
-    const buttons = adminResultGroup.querySelectorAll(".segment-btn");
-    buttons.forEach(btn => {
-        if (btn.getAttribute("data-value") === value) {
+    adminResultGroup.querySelectorAll(".segment-btn").forEach(btn => {
+        if (btn.getAttribute("data-value") === value)
             btn.classList.add("active");
-        }
-        else {
+        else
             btn.classList.remove("active");
-        }
+    });
+}
+async function resizeImage(file, maxDim) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                if (w > h) {
+                    if (w > maxDim) {
+                        h *= maxDim / w;
+                        w = maxDim;
+                    }
+                }
+                else {
+                    if (h > maxDim) {
+                        w *= maxDim / h;
+                        h = maxDim;
+                    }
+                }
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.5));
+            };
+            img.onerror = reject;
+            img.src = e.target?.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
     });
 }
 //# sourceMappingURL=admin.js.map

@@ -2,6 +2,7 @@ import { t } from "./i18n.js";
 // Storage keys
 export const STORAGE_KEY_PREFIX = "quiz_";
 export const STORAGE_KEY_ALL_IDS = "quiz_all_ids";
+export const STORAGE_KEY_IMAGE_REGISTRY_PREFIX = "quiz-images_";
 // Generate a simple ID (timestamp-based)
 export function generateQuizId() {
     return `quiz_${Date.now()}`;
@@ -61,7 +62,32 @@ export function loadQuiz() {
             for (let i = 0; i < binary.length; i++)
                 bytes[i] = binary.charCodeAt(i);
             const decoded = new TextDecoder().decode(bytes);
-            return JSON.parse(decoded);
+            const parsed = JSON.parse(decoded);
+            // Restore image prefixes (Approach #1) and Local Registry references (Approach #2)
+            const prefix = "data:image/jpeg;base64,";
+            parsed.questions.forEach(q => {
+                // Handle Approach #1 (Prefix Stripping)
+                if (q.image && !q.image.startsWith("data:") && !q.image.startsWith("local:")) {
+                    q.image = prefix + q.image;
+                }
+                // Handle Approach #2 (Local Registry)
+                if (q.image?.startsWith("local:")) {
+                    const imgId = q.image.substring(6);
+                    q.image = getImageFromRegistry(parsed.id, imgId) || "";
+                }
+                q.choices?.forEach(c => {
+                    // Handle Approach #1
+                    if (c.image && !c.image.startsWith("data:") && !c.image.startsWith("local:")) {
+                        c.image = prefix + c.image;
+                    }
+                    // Handle Approach #2
+                    if (c.image?.startsWith("local:")) {
+                        const imgId = c.image.substring(6);
+                        c.image = getImageFromRegistry(parsed.id, imgId) || "";
+                    }
+                });
+            });
+            return parsed;
         }
         catch (e) {
             console.warn("Base64 decode failed, trying raw string lookup", e);
@@ -230,5 +256,22 @@ export function getHighScores() {
         }
     });
     return Array.from(highScores.values());
+}
+export function saveImageRegistry(quizId, images) {
+    const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
+    localStorage.setItem(key, JSON.stringify(images));
+}
+export function getImageFromRegistry(quizId, imgId) {
+    const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
+    const data = localStorage.getItem(key);
+    if (!data)
+        return null;
+    try {
+        const registry = JSON.parse(data);
+        return registry[imgId] || null;
+    }
+    catch {
+        return null;
+    }
 }
 //# sourceMappingURL=storage.js.map
