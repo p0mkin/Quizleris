@@ -8,17 +8,16 @@ import { t } from "./i18n.js";
 
 function isSafeUrl(url: string | undefined): boolean {
     if (!url) return false;
-    // Allow data URLs for images
-    if (url.startsWith('data:image/')) return true;
-    // Allow local registry references
+    // Allow data URLs for images (explicitly JPEG, PNG, GIF, WebP)
+    if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url)) return true;
+    // Allow local registry references (internal app logic)
     if (url.startsWith('local:img')) return true;
     // Allow http/https URLs
     try {
         const parsed = new URL(url);
         return ['http:', 'https:'].includes(parsed.protocol);
     } catch {
-        // Fallback for relative paths if any (though not expected in this app)
-        return url.startsWith('./') || url.startsWith('/');
+        return false;
     }
 }
 
@@ -486,16 +485,17 @@ export function renderExamNavigation(): void {
         document.querySelector(".quiz-main")?.prepend(nav);
     }
 
-    nav.innerHTML = quiz.shuffledQuestions.map((q, idx) => {
+    nav.innerHTML = ""; // Clear
+    quiz.shuffledQuestions.forEach((q, idx) => {
         const isAnswered = quiz!.userAnswers.has(q.id);
         const isActive = quiz!.currentIndex === idx;
-        return `
-            <button class="nav-dot ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''}" 
-                    onclick="window.jumpTo(${idx})">
-                ${idx + 1}
-            </button>
-        `;
-    }).join('');
+
+        const btn = document.createElement("button");
+        btn.className = `nav-dot ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''}`;
+        btn.textContent = String(idx + 1);
+        btn.onclick = () => (window as any).jumpTo(idx);
+        nav!.appendChild(btn);
+    });
 
     // Expose jumpTo globally for onclick handlers
     (window as any).jumpTo = (idx: number) => {
@@ -509,10 +509,19 @@ export function renderExamNavigation(): void {
 export function renderStatus(message: string, kind: "neutral" | "correct" | "incorrect"): void {
     const colorClass = kind === "correct" ? "badge badge-correct" : kind === "incorrect" ? "badge badge-incorrect" : "badge";
     const scoreText = `${t('quiz.score')}: ${quiz?.score ?? 0}`;
-    statusContainer.innerHTML = `
-    <span class="${colorClass}">${message}</span>
-    ${quiz?.quiz.mode !== 'exam' ? `<span class="badge">${scoreText}</span>` : ''}
-  `;
+    statusContainer.innerHTML = ""; // Clear
+
+    const msgSpan = document.createElement("span");
+    msgSpan.className = colorClass;
+    msgSpan.textContent = message;
+    statusContainer.appendChild(msgSpan);
+
+    if (quiz?.quiz.mode !== 'exam') {
+        const scoreSpan = document.createElement("span");
+        scoreSpan.className = "badge";
+        scoreSpan.textContent = scoreText;
+        statusContainer.appendChild(scoreSpan);
+    }
 }
 
 export function renderQuestionCounter(): void {
@@ -596,38 +605,108 @@ export function showResults(): void {
     const timeMin = Math.floor(results.totalTime / 60000);
     const timeSec = Math.floor((results.totalTime % 60000) / 1000);
 
-    container.innerHTML = `
-        <div class="results-card">
-            <h2>${t('quiz.complete')}</h2>
-            <div class="final-score">
-                <div class="big-percent">${results.percentage}%</div>
-                <div class="small-ratio">${results.score} / ${results.total}</div>
-            </div>
-            <div class="final-stats">
-                <span>⏱ ${timeMin}:${timeSec.toString().padStart(2, '0')}</span>
-            </div>
-            
-            ${quiz.quiz.showDetailedResults !== false ? `
-            <div class="results-review-list" style="margin-top: 30px; text-align: left;">
-                <h3 style="border-bottom: 2px solid var(--accent); padding-bottom: 8px;">${t('dashboard.review')}</h3>
-                ${results.questionResults.map((r, idx) => `
-                    <div class="result-item ${r.isCorrect ? 'correct' : (r.pendingReview ? 'pending' : 'incorrect')}" style="padding: 15px; border-radius: 8px; margin-bottom: 15px; background: rgba(255,255,255,0.03); border-left: 4px solid ${r.isCorrect ? 'var(--success)' : (r.pendingReview ? 'var(--accent)' : 'var(--danger)')}">
-                        <div style="font-weight: bold; margin-bottom: 5px;">${t('quiz.question')} ${idx + 1}</div>
-                        <div style="margin-bottom: 10px; font-style: italic;">${r.questionPrompt}</div>
-                        <div style="font-size: 0.9rem;">
-                            <strong>Atsakymas:</strong> ${renderResultAnswer(r)}
-                        </div>
-                        ${r.pendingReview ? `<div style="color: var(--accent); font-size: 0.8rem; margin-top: 5px;">⏳ ${t('quiz.pending')}</div>` : ''}
-                    </div>
-                `).join('')}
-            </div>` : ''}
+    const card = document.createElement("div");
+    card.className = "results-card";
 
-            <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">
-                <button id="restart-quiz-btn" class="btn btn-primary">${t('quiz.takeAgain')}</button>
-                <button id="back-to-menu-btn" class="btn">${t('quiz.backToMenu')}</button>
-            </div>
-        </div>
-    `;
+    const title = document.createElement("h2");
+    title.textContent = t('quiz.complete');
+    card.appendChild(title);
+
+    const scoreDiv = document.createElement("div");
+    scoreDiv.className = "final-score";
+    const percentDiv = document.createElement("div");
+    percentDiv.className = "big-percent";
+    percentDiv.textContent = `${results.percentage}%`;
+    const ratioDiv = document.createElement("div");
+    ratioDiv.className = "small-ratio";
+    ratioDiv.textContent = `${results.score} / ${results.total}`;
+    scoreDiv.appendChild(percentDiv);
+    scoreDiv.appendChild(ratioDiv);
+    card.appendChild(scoreDiv);
+
+    const statsDiv = document.createElement("div");
+    statsDiv.className = "final-stats";
+    const timeSpan = document.createElement("span");
+    timeSpan.textContent = `⏱ ${timeMin}:${timeSec.toString().padStart(2, '0')}`;
+    statsDiv.appendChild(timeSpan);
+    card.appendChild(statsDiv);
+
+    if (quiz.quiz.showDetailedResults !== false) {
+        const reviewList = document.createElement("div");
+        reviewList.className = "results-review-list";
+        reviewList.style.marginTop = "30px";
+        reviewList.style.textAlign = "left";
+
+        const h3 = document.createElement("h3");
+        h3.style.borderBottom = "2px solid var(--accent)";
+        h3.style.paddingBottom = "8px";
+        h3.textContent = t('dashboard.review');
+        reviewList.appendChild(h3);
+
+        results.questionResults.forEach((r, idx) => {
+            const item = document.createElement("div");
+            item.className = `result-item ${r.isCorrect ? 'correct' : (r.pendingReview ? 'pending' : 'incorrect')}`;
+            item.style.padding = "15px";
+            item.style.borderRadius = "8px";
+            item.style.marginBottom = "15px";
+            item.style.background = "rgba(255,255,255,0.03)";
+            item.style.borderLeft = `4px solid ${r.isCorrect ? 'var(--success)' : (r.pendingReview ? 'var(--accent)' : 'var(--danger)')}`;
+
+            const qNum = document.createElement("div");
+            qNum.style.fontWeight = "bold";
+            qNum.style.marginBottom = "5px";
+            qNum.textContent = `${t('quiz.question')} ${idx + 1}`;
+            item.appendChild(qNum);
+
+            const qPrompt = document.createElement("div");
+            qPrompt.style.marginBottom = "10px";
+            qPrompt.style.fontStyle = "italic";
+            qPrompt.textContent = r.questionPrompt;
+            item.appendChild(qPrompt);
+
+            const ansInfo = document.createElement("div");
+            ansInfo.style.fontSize = "0.9rem";
+            const strong = document.createElement("strong");
+            strong.textContent = "Atsakymas: ";
+            ansInfo.appendChild(strong);
+            appendResultAnswer(r, ansInfo);
+            item.appendChild(ansInfo);
+
+            if (r.pendingReview) {
+                const pend = document.createElement("div");
+                pend.style.color = "var(--accent)";
+                pend.style.fontSize = "0.8rem";
+                pend.style.marginTop = "5px";
+                pend.textContent = `⏳ ${t('quiz.pending')}`;
+                item.appendChild(pend);
+            }
+            reviewList.appendChild(item);
+        });
+        card.appendChild(reviewList);
+    }
+
+    const actions = document.createElement("div");
+    actions.style.marginTop = "30px";
+    actions.style.display = "flex";
+    actions.style.gap = "15px";
+    actions.style.justifyContent = "center";
+
+    const restartBtn = document.createElement("button");
+    restartBtn.id = "restart-quiz-btn";
+    restartBtn.className = "btn btn-primary";
+    restartBtn.textContent = t('quiz.takeAgain');
+    actions.appendChild(restartBtn);
+
+    const menuBtn = document.createElement("button");
+    menuBtn.id = "back-to-menu-btn";
+    menuBtn.className = "btn";
+    menuBtn.textContent = t('quiz.backToMenu');
+    actions.appendChild(menuBtn);
+
+    card.appendChild(actions);
+
+    container.innerHTML = "";
+    container.appendChild(card);
 
     (window as any).renderMathInElement(container, {
         delimiters: [{ left: "\\(", right: "\\)", display: false }, { left: "\\[", right: "\\]", display: true }]
@@ -648,14 +727,20 @@ export function showResults(): void {
     };
 }
 
-function renderResultAnswer(r: QuestionResult): string {
-    if (r.type === 'image-upload' && r.answer) {
-        return `<br><img src="${r.answer}" style="max-height: 150px; margin-top: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);" />`;
+function appendResultAnswer(r: QuestionResult, parent: HTMLElement): void {
+    if (r.type === 'image-upload' && r.answer && isSafeUrl(r.answer)) {
+        parent.appendChild(document.createElement("br"));
+        const img = document.createElement("img");
+        img.src = r.answer;
+        img.style.maxHeight = "150px";
+        img.style.marginTop = "5px";
+        img.style.borderRadius = "4px";
+        img.style.border = "1px solid rgba(255,255,255,0.1)";
+        parent.appendChild(img);
+        return;
     }
-    if (Array.isArray(r.answer)) {
-        return r.answer.join(', ');
-    }
-    return String(r.answer || t('quiz.noAnswer'));
+    const txt = Array.isArray(r.answer) ? r.answer.join(', ') : String(r.answer || t('quiz.noAnswer'));
+    parent.appendChild(document.createTextNode(txt));
 }
 
 export function initializeQuiz(quizData: Quiz): void {
