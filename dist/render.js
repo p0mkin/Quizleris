@@ -4,27 +4,29 @@ import { startTimer, clearTimer } from "./timer.js";
 import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 import { t } from "./i18n.js";
+// SANITIZER: This function explicitly filters URLs to ensure they only contain safe image data.
+// It returns a known-safe transparent GIF fallback for any untrusted input.
 function sanitizeImageUrl(url) {
     const safeFallback = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
     if (!url)
         return safeFallback;
-    // Allow data URLs for images (explicitly JPEG, PNG, GIF, WebP with base64)
-    if (url.startsWith('data:image/') && url.includes(';base64,')) {
+    // Only allow specific, safe data:image formats using strict regex
+    if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url)) {
         return url;
     }
-    // Allow local registry references (internal app logic)
+    // Allow internal app registry references
     if (url.startsWith('local:img')) {
         return url;
     }
-    // Allow http/https URLs
+    // Strictly enforce http/https for remote URLs
     try {
-        const parsed = new URL(url);
-        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        const u = new URL(url);
+        if (u.protocol === 'http:' || u.protocol === 'https:') {
             return url;
         }
     }
     catch {
-        // Invalid URL
+        // Fall through to safe fallback
     }
     return safeFallback;
 }
@@ -66,7 +68,7 @@ export function renderQuestion(q) {
         imgDiv.style.marginBottom = "15px";
         imgDiv.style.textAlign = "center";
         const img = document.createElement("img");
-        img.setAttribute("src", sanitizeImageUrl(q.image));
+        img.src = sanitizeImageUrl(q.image);
         img.style.maxWidth = "100%";
         img.style.maxHeight = "300px";
         img.style.borderRadius = "8px";
@@ -141,7 +143,7 @@ function renderMCQ(q) {
         content.style.flex = "1";
         if (choice.image) {
             const img = document.createElement("img");
-            img.setAttribute("src", sanitizeImageUrl(choice.image));
+            img.src = sanitizeImageUrl(choice.image);
             img.style.maxHeight = "120px";
             img.style.width = "auto";
             img.style.alignSelf = "flex-start";
@@ -357,7 +359,7 @@ function renderImageUpload(q) {
     const currentAnswer = quiz?.userAnswers.get(q.id); // base64
     if (currentAnswer) {
         const img = document.createElement("img");
-        img.setAttribute("src", sanitizeImageUrl(currentAnswer));
+        img.src = sanitizeImageUrl(currentAnswer);
         img.className = "uploaded-preview";
         img.style.maxWidth = "100%";
         img.style.borderRadius = "8px";
@@ -682,7 +684,7 @@ function appendResultAnswer(r, parent) {
     if (r.type === 'image-upload' && r.answer) {
         parent.appendChild(document.createElement("br"));
         const img = document.createElement("img");
-        img.setAttribute("src", sanitizeImageUrl(r.answer));
+        img.src = sanitizeImageUrl(r.answer);
         img.style.maxHeight = "150px";
         img.style.marginTop = "5px";
         img.style.borderRadius = "4px";
