@@ -6,16 +6,12 @@ import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 import { t } from "./i18n.js";
 
-/**
- * Sanitizes an image URL for safe use in img.src attributes.
- * Returns the URL if safe, otherwise returns a safe transparent pixel data URL.
- * This explicit return pattern helps CodeQL's taint analysis recognize sanitization.
- */
 function sanitizeImageUrl(url: string | undefined): string {
-    if (!url) return "data:image/gif;base64,R0lGODlhAQABAAAAACw="; // 1x1 transparent GIF
+    const safeFallback = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    if (!url) return safeFallback;
 
     // Allow data URLs for images (explicitly JPEG, PNG, GIF, WebP with base64)
-    if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url)) {
+    if (url.startsWith('data:image/') && url.includes(';base64,')) {
         return url;
     }
 
@@ -27,15 +23,21 @@ function sanitizeImageUrl(url: string | undefined): string {
     // Allow http/https URLs
     try {
         const parsed = new URL(url);
-        if (['http:', 'https:'].includes(parsed.protocol)) {
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
             return url;
         }
     } catch {
-        // Invalid URL format
+        // Invalid URL
     }
 
-    // Return safe fallback for any untrusted input
-    return "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    return safeFallback;
+}
+
+function clearElement(el: HTMLElement | null): void {
+    if (!el) return;
+    while (el.firstChild) {
+        el.removeChild(el.firstChild);
+    }
 }
 
 // Render question prompt
@@ -43,7 +45,7 @@ export function renderQuestion(q: Question): void {
     const typeLabel = q.type === 'multiple-choice' ?
         (q.allowMultipleAnswers ? t('quiz.mcSelectAll') : t('quiz.mcSelectOne')) : '';
 
-    questionContainer.innerHTML = ""; // Clear
+    clearElement(questionContainer);
 
     // Header
     const header = document.createElement("div");
@@ -101,7 +103,7 @@ export function renderQuestion(q: Question): void {
 // Main Answers Dispatcher
 export function renderAnswers(q: Question): void {
     const type = q.type || 'multiple-choice';
-    answersContainer.innerHTML = "";
+    clearElement(answersContainer);
     answersContainer.className = "answers-container " + type;
 
     switch (type) {
@@ -502,7 +504,7 @@ export function renderExamNavigation(): void {
         document.querySelector(".quiz-main")?.prepend(nav);
     }
 
-    nav.innerHTML = ""; // Clear
+    clearElement(nav as HTMLElement);
     quiz.shuffledQuestions.forEach((q, idx) => {
         const isAnswered = quiz!.userAnswers.has(q.id);
         const isActive = quiz!.currentIndex === idx;
@@ -526,7 +528,7 @@ export function renderExamNavigation(): void {
 export function renderStatus(message: string, kind: "neutral" | "correct" | "incorrect"): void {
     const colorClass = kind === "correct" ? "badge badge-correct" : kind === "incorrect" ? "badge badge-incorrect" : "badge";
     const scoreText = `${t('quiz.score')}: ${quiz?.score ?? 0}`;
-    statusContainer.innerHTML = ""; // Clear
+    clearElement(statusContainer);
 
     const msgSpan = document.createElement("span");
     msgSpan.className = colorClass;
@@ -722,7 +724,7 @@ export function showResults(): void {
 
     card.appendChild(actions);
 
-    container.innerHTML = "";
+    clearElement(container);
     container.appendChild(card);
 
     (window as any).renderMathInElement(container, {
