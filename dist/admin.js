@@ -232,6 +232,18 @@ export function renderAdminForm() {
         qDiv.querySelectorAll('.admin-choice-text').forEach(input => {
             input.addEventListener('input', () => updateQuizFromDOM());
         });
+        // Blank Insert Button logic
+        qDiv.querySelector('.admin-insert-blank-btn')?.addEventListener('click', () => {
+            const promptEl = qDiv.querySelector('.admin-question-prompt');
+            const start = promptEl.selectionStart;
+            const end = promptEl.selectionEnd;
+            const text = promptEl.value;
+            promptEl.value = text.substring(0, start) + "___" + text.substring(end);
+            promptEl.focus();
+            promptEl.setSelectionRange(start + 3, start + 3);
+            // Trigger the input event manually to generate new blank inputs
+            promptEl.dispatchEvent(new Event('input', { bubbles: true }));
+        });
         // Wire up MCQ specific events if it's MC
         if (q.type === 'multiple-choice' || !q.type) {
             qDiv.querySelector(`.admin-add-choice-btn[data-qidx="${qIdx}"]`)?.addEventListener("click", () => {
@@ -305,15 +317,17 @@ export function renderAdminForm() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
-            input.onchange = (e) => {
+            input.onchange = async (e) => {
                 const file = e.target.files?.[0];
                 if (file && adminQuiz) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                        adminQuiz.questions[qIdx].image = ev.target?.result;
+                    try {
+                        const resizedBase64 = await resizeImage(file, 800);
+                        adminQuiz.questions[qIdx].image = resizedBase64;
                         renderAdminForm();
-                    };
-                    reader.readAsDataURL(file);
+                    }
+                    catch (err) {
+                        alert("Error processing image: " + err);
+                    }
                 }
             };
             input.click();
@@ -331,15 +345,17 @@ export function renderAdminForm() {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
-                input.onchange = (ev) => {
+                input.onchange = async (ev) => {
                     const file = ev.target.files?.[0];
                     if (file && adminQuiz) {
-                        const reader = new FileReader();
-                        reader.onload = (rev) => {
-                            adminQuiz.questions[qIdx].choices[cIdx].image = rev.target?.result;
+                        try {
+                            const resizedBase64 = await resizeImage(file, 600);
+                            adminQuiz.questions[qIdx].choices[cIdx].image = resizedBase64;
                             renderAdminForm();
-                        };
-                        reader.readAsDataURL(file);
+                        }
+                        catch (err) {
+                            alert("Error processing image: " + err);
+                        }
                     }
                 };
                 input.click();
@@ -417,9 +433,12 @@ function renderQuestionConfig(q, qIdx) {
             // Count ___ in prompt to show enough input fields
             const blankCount = (q.prompt.match(/___/g) || []).length;
             return `
-        <p style="font-size: 0.85rem; color: #fbbf24; margin-bottom: 12px; font-weight: 500;">
-          💡 ${t('admin.blankHint') || 'Instrukcija: Klausimo tekste įrašykite ___ (trys pabraukimo brūkšniai) ten, kur turi būti tuščia vieta.'}
-        </p>
+        <div style="margin-bottom: 12px; display: flex; gap: 10px; align-items: center;">
+          <button class="btn btn-secondary btn-icon admin-insert-blank-btn" data-qidx="${qIdx}" style="font-size: 0.8rem;">
+            ➕ ${t('admin.insertBlank') || 'Įterpti tarpą (___)'}
+          </button>
+          <span style="font-size: 0.8rem; color: #fbbf24;">💡 ${t('admin.blankHint') || 'Naudokite ___ tarpams sukurti.'}</span>
+        </div>
         <div class="admin-blanks-list" data-qidx="${qIdx}" style="display: flex; flex-direction: column; gap: 12px;">
           ${Array.from({ length: blankCount }).map((_, bIdx) => `
             <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 12px;">
@@ -597,8 +616,16 @@ export function saveAdminQuiz() {
     }
     // Save to localStorage
     saveQuizToStorage(adminQuiz);
-    // Generate share code (base64 JSON)
-    const shareCode = btoa(JSON.stringify(adminQuiz));
+    // Generate share code (UTF-8 safe base64 JSON)
+    const jsonStr = JSON.stringify(adminQuiz);
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++)
+        binary += String.fromCharCode(bytes[i]);
+    const shareCode = btoa(binary);
+    if (shareCode.length > 8000) {
+        alert("WARNING: Your quiz contains a lot of image data. The share URL might be too long for some browsers. Try removing images if the link doesn't work.");
+    }
     const shareUrl = `${window.location.origin}${window.location.pathname}?quiz=${shareCode}`;
     const dashboardUrl = `${window.location.origin}${window.location.pathname}?dashboard=${adminQuiz.id}`;
     adminShareCode.style.display = "block";

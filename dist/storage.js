@@ -55,11 +55,16 @@ export function loadQuiz() {
     if (quizParam) {
         // Try to decode as base64 JSON (for sharing)
         try {
-            const decoded = atob(quizParam);
-            const parsed = JSON.parse(decoded);
-            return parsed;
+            // Enhanced decoding: supports UTF-8 (Lithuanian chars) and handles binary data safety
+            const binary = atob(quizParam);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++)
+                bytes[i] = binary.charCodeAt(i);
+            const decoded = new TextDecoder().decode(bytes);
+            return JSON.parse(decoded);
         }
-        catch {
+        catch (e) {
+            console.warn("Base64 decode failed, trying raw string lookup", e);
             // If not base64, treat as localStorage ID
             const loaded = loadQuizFromStorage(quizParam);
             if (loaded)
