@@ -459,12 +459,19 @@ export function renderExamNavigation() {
         return;
     const navId = "exam-nav";
     let nav = document.getElementById(navId);
+    // Hide if only one question
+    if (quiz.shuffledQuestions.length <= 1) {
+        if (nav)
+            nav.style.display = "none";
+        return;
+    }
     if (!nav) {
         nav = document.createElement("div");
         nav.id = navId;
         nav.className = "exam-navigation";
         document.querySelector(".quiz-main")?.prepend(nav);
     }
+    nav.style.display = "flex";
     clearElement(nav);
     quiz.shuffledQuestions.forEach((q, idx) => {
         const isAnswered = quiz.userAnswers.has(q.id);
@@ -522,28 +529,45 @@ export function renderNextButton() {
         btn.style.marginTop = "15px";
         statusContainer.appendChild(btn);
     }
-    if (quiz?.quiz.mode === 'exam') {
+    if (!quiz) {
+        btn.style.display = "none";
+        return;
+    }
+    if (quiz.quiz.mode === 'exam') {
+        const q = quiz; // Capture for closure
         btn.style.display = "block";
-        btn.textContent = t('quiz.examSubmit');
-        btn.onclick = () => {
-            const unanswered = quiz.shuffledQuestions.length - quiz.userAnswers.size;
-            const confirmMsg = unanswered > 0 ?
-                `Tau dar liko ${unanswered} neatsakytų klausimų. Ar tikrai norite pateikti?` :
-                t('quiz.examConfirm');
-            if (confirm(confirmMsg))
-                showResults();
-        };
+        if (q.isLastQuestion) {
+            btn.textContent = t('quiz.examSubmit');
+            btn.onclick = () => {
+                const unanswered = q.shuffledQuestions.length - q.userAnswers.size;
+                const confirmMsg = unanswered > 0 ?
+                    `Tau dar liko ${unanswered} neatsakytų klausimų. Ar tikrai norite pateikti?` :
+                    t('quiz.examConfirm');
+                if (confirm(confirmMsg))
+                    showResults();
+            };
+        }
+        else {
+            btn.textContent = t('quiz.nextQuestion');
+            btn.onclick = () => {
+                q.nextQuestion();
+                renderQuiz();
+            };
+        }
     }
     else {
-        if (quiz?.isLastQuestion && quiz.hasAnswered) {
+        if (quiz.isLastQuestion && quiz.hasAnswered) {
             btn.style.display = "block";
             btn.textContent = t('quiz.viewResults');
             btn.onclick = showResults;
         }
         else {
-            btn.style.display = quiz?.hasAnswered ? "block" : "none";
+            btn.style.display = quiz.hasAnswered ? "block" : "none";
             btn.textContent = t('quiz.nextQuestion');
-            btn.onclick = () => { quiz?.nextQuestion(); renderQuiz(); };
+            btn.onclick = () => {
+                quiz.nextQuestion();
+                renderQuiz();
+            };
         }
     }
 }

@@ -35,12 +35,19 @@ let adminShuffleAnswers: HTMLInputElement;
 // Callbacks
 let goHome: () => void = () => { };
 
+// Refresh admin toggle button visibility
+export function refreshAdminToggleVisibility(): void {
+    if (!adminToggle) return;
+    adminToggle.style.display = isAdminAccessAllowed() ? "block" : "none";
+}
+
 // Initialize admin DOM refs and events
 export function setupAdmin(callbacks: { onHome: () => void }): void {
     goHome = callbacks.onHome;
 
     adminToggle = getRequiredElement("admin-toggle") as HTMLButtonElement;
     adminPanel = getRequiredElement("admin-panel");
+    // ... (rest of the assignments)
     adminQuizTitle = getRequiredElement("admin-quiz-title") as HTMLInputElement;
     adminQuestionsList = getRequiredElement("admin-questions-list");
     adminAddQuestionBtn = getRequiredElement("admin-add-question") as HTMLButtonElement;
@@ -62,9 +69,7 @@ export function setupAdmin(callbacks: { onHome: () => void }): void {
 
     setupSegmentedControl();
 
-    if (!isAdminAccessAllowed()) {
-        adminToggle.style.display = "none";
-    }
+    refreshAdminToggleVisibility();
 
     setupAdminEventsInternal();
 }
@@ -73,6 +78,7 @@ export function setupAdmin(callbacks: { onHome: () => void }): void {
 export function toggleAdminMode(): void {
     if (!isAdminAccessAllowed()) {
         if (!promptAdminPassword()) return;
+        refreshAdminToggleVisibility();
     }
 
     adminMode = !adminMode;
