@@ -4,23 +4,34 @@ import { startTimer, clearTimer } from "./timer.js";
 import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
 import { t } from "./i18n.js";
-function isSafeUrl(url) {
+/**
+ * Sanitizes an image URL for safe use in img.src attributes.
+ * Returns the URL if safe, otherwise returns a safe transparent pixel data URL.
+ * This explicit return pattern helps CodeQL's taint analysis recognize sanitization.
+ */
+function sanitizeImageUrl(url) {
     if (!url)
-        return false;
-    // Allow data URLs for images (explicitly JPEG, PNG, GIF, WebP)
-    if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url))
-        return true;
+        return "data:image/gif;base64,R0lGODlhAQABAAAAACw="; // 1x1 transparent GIF
+    // Allow data URLs for images (explicitly JPEG, PNG, GIF, WebP with base64)
+    if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url)) {
+        return url;
+    }
     // Allow local registry references (internal app logic)
-    if (url.startsWith('local:img'))
-        return true;
+    if (url.startsWith('local:img')) {
+        return url;
+    }
     // Allow http/https URLs
     try {
         const parsed = new URL(url);
-        return ['http:', 'https:'].includes(parsed.protocol);
+        if (['http:', 'https:'].includes(parsed.protocol)) {
+            return url;
+        }
     }
     catch {
-        return false;
+        // Invalid URL format
     }
+    // Return safe fallback for any untrusted input
+    return "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
 }
 // Render question prompt
 export function renderQuestion(q) {
@@ -47,13 +58,13 @@ export function renderQuestion(q) {
     }
     questionContainer.appendChild(header);
     // Image
-    if (q.image && isSafeUrl(q.image)) {
+    if (q.image) {
         const imgDiv = document.createElement("div");
         imgDiv.className = "question-image";
         imgDiv.style.marginBottom = "15px";
         imgDiv.style.textAlign = "center";
         const img = document.createElement("img");
-        img.src = q.image;
+        img.setAttribute("src", sanitizeImageUrl(q.image));
         img.style.maxWidth = "100%";
         img.style.maxHeight = "300px";
         img.style.borderRadius = "8px";
@@ -126,9 +137,9 @@ function renderMCQ(q) {
         content.style.flexDirection = "column";
         content.style.gap = "8px";
         content.style.flex = "1";
-        if (choice.image && isSafeUrl(choice.image)) {
+        if (choice.image) {
             const img = document.createElement("img");
-            img.src = choice.image;
+            img.setAttribute("src", sanitizeImageUrl(choice.image));
             img.style.maxHeight = "120px";
             img.style.width = "auto";
             img.style.alignSelf = "flex-start";
@@ -342,9 +353,9 @@ function renderTextInput(q) {
 function renderImageUpload(q) {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentAnswer = quiz?.userAnswers.get(q.id); // base64
-    if (currentAnswer && isSafeUrl(currentAnswer)) {
+    if (currentAnswer) {
         const img = document.createElement("img");
-        img.src = currentAnswer;
+        img.setAttribute("src", sanitizeImageUrl(currentAnswer));
         img.className = "uploaded-preview";
         img.style.maxWidth = "100%";
         img.style.borderRadius = "8px";
@@ -666,10 +677,10 @@ export function showResults() {
     };
 }
 function appendResultAnswer(r, parent) {
-    if (r.type === 'image-upload' && r.answer && isSafeUrl(r.answer)) {
+    if (r.type === 'image-upload' && r.answer) {
         parent.appendChild(document.createElement("br"));
         const img = document.createElement("img");
-        img.src = r.answer;
+        img.setAttribute("src", sanitizeImageUrl(r.answer));
         img.style.maxHeight = "150px";
         img.style.marginTop = "5px";
         img.style.borderRadius = "4px";
