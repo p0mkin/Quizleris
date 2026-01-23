@@ -160,17 +160,24 @@ function showResultDetails(result: QuizResult): void {
     `;
 
     if (result.details && result.details.length > 0) {
-        result.details.forEach((d, idx) => {
+        result.details.forEach((d: any, idx: number) => {
             const timeS = Math.round(d.timeSpent / 1000);
+            const isPending = d.pendingReview;
+            const statusClass = d.isCorrect ? 'badge-correct' : (isPending ? 'badge-pending' : 'badge-incorrect');
+            const statusText = d.isCorrect ? t('quiz.correct') : (isPending ? t('quiz.pending') : t('quiz.incorrect'));
+            const statusColor = d.isCorrect ? 'var(--success)' : (isPending ? 'var(--accent)' : 'var(--danger)');
+
             detailsHtml += `
-                <div class="result-question-item ${d.isCorrect ? '' : 'incorrect-bg'}">
+                <div class="result-question-item ${d.isCorrect ? '' : (isPending ? 'pending-bg' : 'incorrect-bg')}">
                     <div class="result-question-header">
                         <strong>${t('quiz.question')} ${idx + 1}</strong>
-                        <span class="badge ${d.isCorrect ? 'badge-correct' : 'badge-incorrect'}">${d.isCorrect ? t('quiz.correct') : t('quiz.incorrect')} | ${t('quiz.time')}: ${timeS}s</span>
+                        <span class="badge ${statusClass}" style="border-color: ${statusColor}; color: ${statusColor};">${statusText} | ${t('quiz.time')}: ${timeS}s</span>
                     </div>
                     <div class="result-question-prompt" style="font-size: 1.1rem; border-left: 3px solid var(--accent); padding-left: 12px; margin: 12px 0;">${d.questionPrompt}</div>
                     <div class="result-question-answer" style="margin-top:12px; font-size: 1rem;">
-                        ${t('dashboard.selected')}: <span class="${d.isCorrect ? 'text-success' : 'text-danger'}" style="font-weight:bold;">${d.selectedChoiceText}</span>
+                        ${t('dashboard.selected')}: <span style="font-weight:bold; color: ${statusColor};">
+                            ${formatDashboardAnswer(d)}
+                        </span>
                     </div>
                 </div>
             `;
@@ -193,4 +200,14 @@ function showResultDetails(result: QuizResult): void {
     document.getElementById("close-detail-btn")?.addEventListener("click", () => {
         detailView!.style.display = "none";
     });
+}
+
+function formatDashboardAnswer(r: any): string {
+    if (r.type === 'image-upload' && r.answer) {
+        return `<br><img src="${r.answer}" style="max-height: 150px; margin-top: 5px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);" />`;
+    }
+    if (Array.isArray(r.answer)) {
+        return r.answer.join(', ');
+    }
+    return String(r.answer || t('quiz.noAnswer'));
 }

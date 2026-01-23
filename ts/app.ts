@@ -1,6 +1,5 @@
 // Main entry point - imports and initializes all modules
 
-import { injectBadgeStyles } from "./render.js";
 import { setupAdmin, toggleAdminMode } from "./admin.js";
 import { renderStartMenu, setupMenu, renderStudentJoin, isStudentViewActive, handleStudentClick } from "./menu.js";
 import { setupDashboard, renderDashboard } from "./dashboard.js";
@@ -12,8 +11,6 @@ function initApp() {
         // Initialize language system first
         initLanguage();
 
-        // Inject badge styles
-        injectBadgeStyles();
         // Callbacks
         const onHome = () => renderStartMenu();
         const onAdmin = () => toggleAdminMode();
