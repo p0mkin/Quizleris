@@ -660,6 +660,10 @@ export function renderNextButton(): void {
 export function showResults(): void {
     if (!quiz) return;
     clearTimer();
+
+    const params = new URLSearchParams(window.location.search);
+    const isPreview = params.get("preview") === "true";
+
     const results = quiz.getResults();
     const studentName = localStorage.getItem("current_student_name") || "Anonymous";
 
@@ -717,7 +721,11 @@ export function showResults(): void {
     statsDiv.appendChild(timeSpan);
     card.appendChild(statsDiv);
 
-    if (quiz.quiz.showDetailedResults !== false) {
+    // In Exam mode, we hide the detailed per-question review to maintain integrity.
+    // In Practice mode, we show it unless explicitly disabled in the config.
+    const showDetails = quiz.quiz.showDetailedResults !== false && quiz.quiz.mode !== 'exam';
+
+    if (showDetails) {
         const reviewList = document.createElement("div");
         reviewList.className = "results-review-list";
         reviewList.style.marginTop = "30px";
@@ -771,6 +779,21 @@ export function showResults(): void {
         card.appendChild(reviewList);
     }
 
+    if (isPreview) {
+        const previewInfo = document.createElement("div");
+        previewInfo.className = "preview-finished-info";
+        previewInfo.style.marginTop = "25px";
+        previewInfo.style.padding = "15px";
+        previewInfo.style.background = "rgba(251, 191, 36, 0.1)";
+        previewInfo.style.border = "1px solid var(--accent)";
+        previewInfo.style.borderRadius = "8px";
+        previewInfo.style.color = "var(--accent)";
+        previewInfo.style.fontWeight = "bold";
+        previewInfo.style.textAlign = "center";
+        previewInfo.textContent = t('quiz.previewFinished');
+        card.appendChild(previewInfo);
+    }
+
     const actions = document.createElement("div");
     actions.style.marginTop = "30px";
     actions.style.display = "flex";
@@ -787,7 +810,19 @@ export function showResults(): void {
     menuBtn.id = "back-to-menu-btn";
     menuBtn.className = "btn";
     menuBtn.textContent = t('quiz.backToMenu');
-    actions.appendChild(menuBtn);
+
+    // In preview mode, we hide the menu button to encourage closing the tab
+    if (isPreview) {
+        menuBtn.style.display = "none";
+
+        const closeBtn = document.createElement("button");
+        closeBtn.id = "close-preview-btn";
+        closeBtn.className = "btn btn-secondary";
+        closeBtn.textContent = t('admin.closePreview');
+        actions.appendChild(closeBtn);
+    } else {
+        actions.appendChild(menuBtn);
+    }
 
     card.appendChild(actions);
 
@@ -807,10 +842,23 @@ export function showResults(): void {
         renderQuiz();
     };
 
-    document.getElementById("back-to-menu-btn")!.onclick = () => {
-        container!.remove();
-        renderStartMenu();
-    };
+    document.getElementById("back-to-menu-btn")?.addEventListener("click", () => {
+        if (isPreview) {
+            // Force clean redirect to root to clear the huge Base64 quiz data from URL
+            window.location.href = window.location.origin + window.location.pathname;
+        } else {
+            container!.remove();
+            renderStartMenu();
+        }
+    });
+
+    if (isPreview) {
+        document.getElementById("close-preview-btn")?.addEventListener("click", () => {
+            window.close();
+            // Fallback if window.close doesn't work (most browsers allow it only for tabs they opened)
+            alert(t('quiz.previewFinished'));
+        });
+    }
 }
 
 function appendResultAnswer(r: QuestionResult, parent: HTMLElement): void {

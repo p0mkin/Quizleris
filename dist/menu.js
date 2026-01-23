@@ -124,6 +124,14 @@ export function renderStudentJoin(quizToJoin) {
         const name = nameInput.value.trim() || "Anonymous";
         startStudentQuizDirect(name, quizToJoin);
     };
+    // Auto-fill name in preview mode
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("preview") === "true") {
+        const nameInput = document.getElementById("join-student-name");
+        if (nameInput) {
+            nameInput.value = t('admin.previewName');
+        }
+    }
     document.getElementById("join-back-btn").onclick = () => {
         joinContainer.style.display = "none";
         if (welcomeH1)

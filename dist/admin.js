@@ -16,6 +16,7 @@ let adminAddQuestionBtn;
 let adminScanQuestionBtn;
 let adminOcrInput;
 let adminSaveBtn;
+let adminPreviewBtn;
 let adminExportBtn;
 let adminImportBtn;
 let adminImportInput;
@@ -37,6 +38,12 @@ let goHome = () => { };
 export function refreshAdminToggleVisibility() {
     if (!adminToggle)
         return;
+    // Always hide in preview mode to avoid confusion
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("preview") === "true") {
+        adminToggle.style.display = "none";
+        return;
+    }
     adminToggle.style.display = isAdminAccessAllowed() ? "block" : "none";
 }
 /**
@@ -54,6 +61,7 @@ export function setupAdmin(callbacks) {
     adminScanQuestionBtn = getRequiredElement("admin-scan-question");
     adminOcrInput = getRequiredElement("admin-ocr-input");
     adminSaveBtn = getRequiredElement("admin-save");
+    adminPreviewBtn = getRequiredElement("admin-preview");
     adminExportBtn = getRequiredElement("admin-export");
     adminImportBtn = getRequiredElement("admin-import-btn");
     adminImportInput = getRequiredElement("admin-import-input");
@@ -497,6 +505,13 @@ function updateTimerLimitVisibility() {
  * 3. Generates a Base64-encoded shareable URL
  * 4. Saves locally to storage
  */
+/**
+ * Finalizes the quiz editing process.
+ * 1. Syncs DOM state
+ * 2. Compresses/Optimizes images for sharing
+ * 3. Generates a Base64-encoded shareable URL
+ * 4. Saves locally to storage
+ */
 export function saveAdminQuiz() {
     if (!adminQuiz)
         return;
@@ -506,30 +521,9 @@ export function saveAdminQuiz() {
         return;
     }
     saveQuizToStorage(adminQuiz);
-    const quizToShare = JSON.parse(JSON.stringify(adminQuiz));
-    const imageRegistry = {};
-    let imgCounter = 1;
-    quizToShare.questions.forEach(q => {
-        if (q.image && q.image.startsWith("data:")) {
-            const imgId = `img${imgCounter++}`;
-            imageRegistry[imgId] = q.image;
-            q.image = `local:${imgId}`;
-        }
-        q.choices?.forEach(c => {
-            if (c.image && c.image.startsWith("data:")) {
-                const imgId = `img${imgCounter++}`;
-                imageRegistry[imgId] = c.image;
-                c.image = `local:${imgId}`;
-            }
-        });
-    });
+    const { shareCode, registry } = exportQuizForSharing(adminQuiz);
     // Save image registry to localStorage (Approach #2)
-    saveImageRegistry(adminQuiz.id, imageRegistry);
-    const bytes = new TextEncoder().encode(JSON.stringify(quizToShare));
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++)
-        binary += String.fromCharCode(bytes[i]);
-    const shareCode = btoa(binary);
+    saveImageRegistry(adminQuiz.id, registry);
     if (shareCode.length > 8000)
         alert("WARNING: Quiz data very large. URL might fail.");
     const base = window.location.origin + window.location.pathname;
@@ -568,6 +562,44 @@ export function saveAdminQuiz() {
         alert("Copied!");
     });
 }
+function exportQuizForSharing(sourceQuiz) {
+    const quizToShare = JSON.parse(JSON.stringify(sourceQuiz));
+    const registry = {};
+    let imgCounter = 1;
+    quizToShare.questions.forEach(q => {
+        if (q.image && q.image.startsWith("data:")) {
+            const imgId = `img${imgCounter++}`;
+            registry[imgId] = q.image;
+            q.image = `local:${imgId}`;
+        }
+        q.choices?.forEach(c => {
+            if (c.image && c.image.startsWith("data:")) {
+                const imgId = `img${imgCounter++}`;
+                registry[imgId] = c.image;
+                c.image = `local:${imgId}`;
+            }
+        });
+    });
+    const bytes = new TextEncoder().encode(JSON.stringify(quizToShare));
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++)
+        binary += String.fromCharCode(bytes[i]);
+    const shareCode = btoa(binary);
+    return { shareCode, registry };
+}
+export function previewQuiz() {
+    if (!adminQuiz)
+        return;
+    updateQuizFromDOM();
+    // We export to get the image registry populated
+    const { shareCode, registry } = exportQuizForSharing(adminQuiz);
+    // CRITICAL: We MUST save the image registry so the new tab can resolve 'local:img...' references.
+    // This is a side effect (saving to localStorage), but necessary for the preview to work with heavy images.
+    saveImageRegistry(adminQuiz.id, registry);
+    const base = window.location.origin + window.location.pathname;
+    const previewUrl = `${base}?quiz=${shareCode}&preview=true`;
+    window.open(previewUrl, "_blank");
+}
 async function handleOCRUpload(event) {
     const file = event.target.files?.[0];
     if (!file || !adminQuiz)
@@ -599,6 +631,7 @@ function setupAdminEventsInternal() {
     adminScanQuestionBtn.addEventListener("click", () => adminOcrInput.click());
     adminOcrInput.addEventListener("change", handleOCRUpload);
     adminSaveBtn.addEventListener("click", saveAdminQuiz);
+    adminPreviewBtn.addEventListener("click", previewQuiz);
     adminExportBtn.addEventListener("click", () => {
         if (!adminQuiz)
             return;

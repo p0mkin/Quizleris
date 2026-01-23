@@ -32,6 +32,7 @@ const translations = {
         'admin.saveQuiz': 'Išsaugoti testą',
         'admin.exportJson': 'Eksportuoti JSON',
         'admin.importJson': 'Importuoti JSON',
+        'admin.preview': 'Peržiūra',
         'admin.cancel': 'Atšaukti',
         'res_vis_label': 'Rezultato matomumas:',
         'res_vis_det': 'Išsami peržiūra (klausimai ir atsakymai)',
@@ -72,7 +73,6 @@ const translations = {
         'admin.shareUrl': 'Dalintis nuoroda:',
         'admin.quizId': 'Testo ID:',
         'admin.copyLink': 'Kopijuoti nuorodą',
-        'admin.closePreview': 'Uždaryti ir peržiūrėti',
         // Alerts
         'alert.deleteQuestion': 'Ar tikrai norite ištrinti šį klausimą?',
         'alert.deleteChoice': 'Pašalinti šį pasirinkimą?',
@@ -122,6 +122,7 @@ const translations = {
         'quiz.examConfirm': 'Ar tikrai norite baigti egzaminą ir pateikti atsakymus?',
         'quiz.answered': 'atsakyta',
         'quiz.pending': 'Laukiama vertinimo',
+        'quiz.previewFinished': 'Peržiūra baigta — galite uždaryti šį skirtuką.',
         'quiz.jumpTo': 'Eiti į',
         // Quiz Titles
         'quiz.demoTitle': 'Bandomasis testas',
@@ -148,6 +149,8 @@ const translations = {
         'admin.importInvalid': 'Netinkamas testo JSON.',
         'admin.importError': 'Klaida analizuojant JSON',
         'admin.confirmCancel': 'Ar tikrai norite atšaukti? Visi neįrašyti pakeitimai bus prarasti.',
+        'admin.previewName': 'Peržiūra',
+        'admin.closePreview': 'Uždaryti peržiūrą',
         // Join Screen
         'join.joinQuiz': 'Prisijungti prie testo:',
         'join.questions': 'klausimai',
@@ -199,6 +202,7 @@ const translations = {
         'admin.saveQuiz': 'Save Quiz',
         'admin.exportJson': 'Export JSON',
         'admin.importJson': 'Import JSON',
+        'admin.preview': 'Preview',
         'admin.cancel': 'Cancel',
         'res_vis_label': 'Result Visibility:',
         'res_vis_det': 'Detailed Review (Questions & Answers)',
@@ -239,7 +243,6 @@ const translations = {
         'admin.shareUrl': 'Share URL:',
         'admin.quizId': 'Quiz ID:',
         'admin.copyLink': 'Copy Link',
-        'admin.closePreview': 'Close & Preview',
         // Alerts
         'alert.deleteQuestion': 'Are you sure you want to delete this specific question?',
         'alert.deleteChoice': 'Remove this choice?',
@@ -289,6 +292,7 @@ const translations = {
         'quiz.examConfirm': 'Are you sure you want to finish the exam and submit your answers?',
         'quiz.answered': 'answered',
         'quiz.pending': 'Pending Review',
+        'quiz.previewFinished': 'Preview finished — you can close this tab.',
         'quiz.jumpTo': 'Jump to',
         // Quiz Titles
         'quiz.demoTitle': 'Demo Quiz',
@@ -315,6 +319,8 @@ const translations = {
         'admin.importInvalid': 'Invalid quiz JSON.',
         'admin.importError': 'Error parsing JSON',
         'admin.confirmCancel': 'Are you sure you want to cancel? Any unsaved changes will be lost.',
+        'admin.previewName': 'Preview',
+        'admin.closePreview': 'Close Preview',
         // Join Screen
         'join.joinQuiz': 'Join Quiz:',
         'join.questions': 'questions',

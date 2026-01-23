@@ -1,14 +1,32 @@
 import { quiz } from "./state.js";
 import { statusContainer } from "./dom.js";
-// Timer interval reference
-export let timerInterval = null;
+// Timer state tracking
+let rafId = null;
+let currentTimerMode = null;
+let currentTimerQuizId = null;
+let currentTimerQuestionId = null;
+/**
+ * Starts or updates the quiz timer.
+ * Uses requestAnimationFrame for smooth UI updates and accurate timing.
+ *
+ * @param config - Timer configuration from the quiz
+ * @param onTimeout - Callback executed when time hits zero
+ */
 export function startTimer(config, onTimeout) {
-    // Clear existing timer
-    if (timerInterval !== null) {
-        clearInterval(timerInterval);
-    }
     if (!quiz)
         return;
+    const mode = config.mode;
+    const limit = config.limitSeconds;
+    const quizId = quiz.quiz.id;
+    const questionId = quiz.shuffledQuestions[quiz.currentIndex].id;
+    // IDEMPOTENCY CHECK:
+    // If we are in 'quiz' mode and the timer is already running for this quiz, 
+    // do NOT restart it. This prevents the "skip/reset" glitch when moving between questions.
+    if (mode === 'quiz' && rafId !== null && currentTimerQuizId === quizId && currentTimerMode === 'quiz') {
+        return;
+    }
+    // Always clear existing RAF loop when starting a new mode or a new question
+    clearTimer();
     const timerId = "question-timer";
     let timerEl = document.getElementById(timerId);
     if (!timerEl) {
@@ -18,20 +36,21 @@ export function startTimer(config, onTimeout) {
         statusContainer.appendChild(timerEl);
     }
     timerEl.classList.remove("text-danger");
-    // Determine start time and logic
-    const mode = config.mode;
-    const limit = config.limitSeconds;
-    // For quiz mode, we use global start time. For question mode, current question start.
+    // Capture state for idempotency and mode tracking
+    currentTimerMode = mode;
+    currentTimerQuizId = quizId;
+    currentTimerQuestionId = questionId;
+    // Reference start time
     const startTime = mode === 'question'
-        ? (quiz.questionStartTimes.get(quiz.shuffledQuestions[quiz.currentIndex].id) || Date.now())
+        ? (quiz.questionStartTimes.get(questionId) || Date.now())
         : quiz.startTime;
-    timerInterval = window.setInterval(() => {
+    const updateTimer = () => {
         if (!quiz) {
             clearTimer();
             return;
         }
-        // Stop conditions
-        if (mode === 'question' && quiz.hasAnswered) {
+        // Mode-specific stop conditions
+        if (mode === 'question' && (quiz.hasAnswered || quiz.shuffledQuestions[quiz.currentIndex].id !== currentTimerQuestionId)) {
             clearTimer();
             return;
         }
@@ -45,14 +64,16 @@ export function startTimer(config, onTimeout) {
             const minutes = Math.floor(elapsed / 60);
             const seconds = Math.floor(elapsed % 60);
             timerEl.textContent = `Time: ${minutes}:${seconds.toString().padStart(2, "0")}`;
+            rafId = requestAnimationFrame(updateTimer);
         }
         else {
             // Countdown
-            const remaining = Math.max(0, Math.ceil(limit - elapsed));
-            const minutes = Math.floor(remaining / 60);
-            const seconds = remaining % 60;
+            const remaining = Math.max(0, limit - elapsed);
+            const displayRemaining = Math.ceil(remaining);
+            const minutes = Math.floor(displayRemaining / 60);
+            const seconds = displayRemaining % 60;
             timerEl.textContent = `Time: ${minutes}:${seconds.toString().padStart(2, "0")}`;
-            if (remaining <= 5) {
+            if (displayRemaining <= 5) {
                 timerEl.classList.add("text-danger");
             }
             if (remaining <= 0) {
@@ -60,24 +81,23 @@ export function startTimer(config, onTimeout) {
                 if (onTimeout)
                     onTimeout();
             }
+            else {
+                rafId = requestAnimationFrame(updateTimer);
+            }
         }
-    }, 1000);
-    // Initial text set
-    const initialElapsed = (Date.now() - startTime) / 1000;
-    if (mode === 'none') {
-        timerEl.textContent = "Time: 0:00";
-    }
-    else {
-        const remaining = Math.max(0, Math.ceil(limit - initialElapsed));
-        const m = Math.floor(remaining / 60);
-        const s = remaining % 60;
-        timerEl.textContent = `Time: ${m}:${s.toString().padStart(2, "0")}`;
-    }
+    };
+    // Kick off the loop
+    rafId = requestAnimationFrame(updateTimer);
 }
+/**
+ * Stops the current timer animation loop and clears state.
+ */
 export function clearTimer() {
-    if (timerInterval !== null) {
-        clearInterval(timerInterval);
-        timerInterval = null;
+    if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
     }
+    currentTimerMode = null;
+    currentTimerQuestionId = null;
 }
 //# sourceMappingURL=timer.js.map

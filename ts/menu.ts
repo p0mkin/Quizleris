@@ -130,6 +130,15 @@ export function renderStudentJoin(quizToJoin: Quiz): void {
         startStudentQuizDirect(name, quizToJoin);
     };
 
+    // Auto-fill name in preview mode
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("preview") === "true") {
+        const nameInput = document.getElementById("join-student-name") as HTMLInputElement;
+        if (nameInput) {
+            nameInput.value = t('admin.previewName');
+        }
+    }
+
     document.getElementById("join-back-btn")!.onclick = () => {
         joinContainer.style.display = "none";
         if (welcomeH1) welcomeH1.style.display = "block";
