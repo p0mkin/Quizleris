@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "vercel": "npx tsc && cp index.html style.css dist/ && cp -r assets dist/ 2>/dev/null",
+    "vercel": "chmod +x node_modules/.bin/* && npx tsc && cp index.html style.css dist/ && cp -r assets dist/ 2>/dev/null",
     "build": "npx tsc",
     "dev": "tsc --watch",
     "start": "http-server . -o"
