@@ -1,46 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <!-- Basic page metadata -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Math Quiz</title>
-
   <!-- Link to your stylesheet (we'll create style.css next) -->
   <link rel="stylesheet" href="style.css" />
-
   <!-- KaTeX CSS for LaTeX rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
-
   <!-- KaTeX JS (we'll call this later from TypeScript-compiled JS) -->
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-
   <!-- Tesseract.js for OCR -->
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
-
-
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
   <script type="module" src="app.js"></script>
 </head>
-
 <body>
   <div id="app-root">
     <!-- Minimal static structure; TypeScript will fill this dynamically -->
-
     <header class="quiz-header" style="display: none;">
       <h1 data-i18n="app.title">Quizleris</h1>
       <button id="admin-toggle" class="btn" style="display: none;" data-i18n="admin.adminMode">Admin Mode</button>
     </header>
-
     <section id="start-menu" class="start-menu">
       <div style="position: absolute; top: 20px; right: 20px;">
         <button id="lang-toggle" class="btn" style="font-size: 0.9rem; padding: 6px 12px;" title="Switch Language">
           🌐 <span id="lang-label">LT</span>
         </button>
       </div>
-
       <h1 data-i18n="menu.welcome">Sveiki atvykę į Quizleris</h1>
       <p data-i18n="menu.selectRole">Pasirinkite savo vaidmenį:</p>
       <div class="menu-actions">
@@ -48,24 +37,20 @@
         <button id="menu-btn-admin" class="btn" data-i18n="menu.admin">Esu Administratorius</button>
       </div>
     </section>
-
     <main class="quiz-main" style="display: none;">
       <!-- Placeholder for question text (with LaTeX) -->
       <section id="question-container">
         <!-- TypeScript will inject the current question here -->
       </section>
-
       <!-- Placeholder for answer buttons -->
       <section id="answers-container">
         <!-- TypeScript will generate answer options here -->
       </section>
-
       <!-- Placeholder for score and status -->
       <section id="status-container">
         <!-- TypeScript will show score, feedback, etc. here -->
       </section>
     </main>
-
     <section id="dashboard-view" class="dashboard-view" style="display: none;">
       <h2 data-i18n="dashboard.title" style="text-align: center; font-size: 2rem; margin-bottom: 24px;">Rezultatų
         suvestinė</h2>
@@ -76,7 +61,6 @@
           style="background: #ef4444; border: none; padding: 10px 20px;">Išvalyti istoriją</button>
       </div>
     </section>
-
     <!-- Admin panel (hidden by default) -->
     <section id="admin-panel" class="admin-panel" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -92,7 +76,6 @@
           <input type="text" id="admin-quiz-title" data-i18n-placeholder="admin.quizTitlePlaceholder"
             placeholder="My Math Quiz" />
         </label>
-
         <div
           style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
           <div style="flex: 1;">
@@ -108,7 +91,6 @@
             <input type="number" id="admin-timer-limit" class="admin-form" value="30" style="width: 100%;" />
           </div>
         </div>
-
         <div
           style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
           <div style="flex: 1;">
@@ -132,7 +114,6 @@
             </div>
           </div>
         </div>
-
         <div class="form-group" style="margin-bottom: 20px;">
           <label style="display: block; margin-bottom: 8px;" data-i18n="res_vis_label">Result Visibility:</label>
           <div class="segmented-control" id="admin-result-visibility-group">
@@ -142,7 +123,6 @@
           </div>
           <input type="hidden" id="admin-show-results-value" value="detailed">
         </div>
-
         <div id="admin-questions-list"></div>
         <div class="admin-question-actions">
           <button id="admin-add-question" class="btn" data-i18n="admin.addQuestion">+ Add Question</button>
@@ -163,5 +143,4 @@
     </section>
   </div>
 </body>
-
 </html>
