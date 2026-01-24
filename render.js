@@ -1,0 +1,794 @@
+import { quiz, setQuiz, QuizState } from "./state.js";
+import { questionContainer, answersContainer, statusContainer } from "./dom.js";
+import { startTimer, clearTimer } from "./timer.js";
+import { saveResult } from "./storage.js";
+import { t } from "./i18n.js";
+
+export function initializeQuiz(quizData) {
+    console.log("Initializing Quiz with data:", quizData?.id);
+    setQuiz(new QuizState(quizData));
+    renderQuiz();
+}
+
+/**
+ * SANITIZER: Explicitly filters and validates URLs to ensure they contain safe image data.
+ */
+function sanitizeImageUrl(url) {
+    const safeFallback = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+    if (!url) return safeFallback;
+
+    // Only allow specific, safe data:image formats using strict regex
+    if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url)) {
+        return url;
+    }
+
+    // Allow internal app registry references
+    if (url.startsWith('local:img')) {
+        return url;
+    }
+
+    // Strictly enforce http/https for remote URLs
+    try {
+        const u = new URL(url);
+        if (u.protocol === 'http:' || u.protocol === 'https:') {
+            return url;
+        }
+    } catch {
+        // Fall through to safe fallback
+    }
+
+    return safeFallback;
+}
+
+function clearElement(el) {
+    if (!el) return;
+    while (el.firstChild) {
+        el.removeChild(el.firstChild);
+    }
+}
+
+export function renderQuestion(q) {
+    const typeLabel = q.type === 'multiple-choice' ?
+        (q.allowMultipleAnswers ? t('quiz.mcSelectAll') : t('quiz.mcSelectOne')) : '';
+
+    clearElement(questionContainer);
+
+    // Header
+    const header = document.createElement("div");
+    header.className = "prompt-header";
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "10px";
+
+    if (typeLabel) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.style.background = "var(--accent)";
+        badge.style.color = "white";
+        badge.textContent = typeLabel;
+        header.appendChild(badge);
+    } else {
+        header.appendChild(document.createElement("span"));
+    }
+    questionContainer.appendChild(header);
+
+    // Image
+    if (q.image) {
+        const imgDiv = document.createElement("div");
+        imgDiv.className = "question-image";
+        imgDiv.style.marginBottom = "15px";
+        imgDiv.style.textAlign = "center";
+
+        const img = document.createElement("img");
+        img.src = sanitizeImageUrl(q.image);
+        img.style.maxWidth = "100%";
+        img.style.maxHeight = "300px";
+        img.style.borderRadius = "8px";
+        img.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+
+        // FIX: Add error handling for images
+        img.onerror = () => {
+            img.style.display = 'none';
+            const errorMsg = document.createElement('p');
+            errorMsg.textContent = "(Image failed to load)";
+            errorMsg.style.color = "#ff6b6b";
+            errorMsg.style.fontSize = "0.8rem";
+            imgDiv.appendChild(errorMsg);
+        };
+
+        imgDiv.appendChild(img);
+        questionContainer.appendChild(imgDiv);
+    }
+
+    // Prompt
+    const prompt = document.createElement("div");
+    prompt.className = "prompt";
+    prompt.textContent = q.prompt;
+    questionContainer.appendChild(prompt);
+
+    // Ask KaTeX to render LaTeX
+    if (window.renderMathInElement) {
+        window.renderMathInElement(questionContainer, {
+            delimiters: [
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true },
+            ],
+        });
+    }
+}
+
+// Main Answers Dispatcher
+export function renderAnswers(q) {
+    const type = q.type || 'multiple-choice';
+    clearElement(answersContainer);
+    answersContainer.className = "answers-container " + type;
+
+    switch (type) {
+        case 'multiple-choice':
+            renderMCQ(q);
+            break;
+        case 'numeric':
+            renderNumeric(q);
+            break;
+        case 'fill-blank':
+            renderFillBlank(q);
+            break;
+        case 'true-false':
+            renderTrueFalse(q);
+            break;
+        case 'text':
+            renderTextInput(q);
+            break;
+        case 'image-upload':
+            renderImageUpload(q);
+            break;
+    }
+
+    if (window.renderMathInElement) {
+        window.renderMathInElement(answersContainer, {
+            delimiters: [
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true },
+            ],
+        });
+    }
+}
+
+function renderMCQ(q) {
+    const allowMultiple = q.allowMultipleAnswers;
+    const currentAnswer = quiz?.userAnswers.get(q.id) || [];
+    const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
+
+    (q.choices || []).forEach((choice) => {
+        const btn = document.createElement("button");
+        btn.className = "answer-btn mc-btn";
+        if (allowMultiple) btn.classList.add("checkbox-style");
+
+        btn.dataset.choiceId = choice.id;
+
+        const indicator = document.createElement("div");
+        indicator.className = "mc-indicator";
+        indicator.textContent = allowMultiple ? '' : choice.id.toUpperCase();
+        btn.appendChild(indicator);
+
+        const content = document.createElement("div");
+        content.className = "mc-content";
+        content.style.display = "flex";
+        content.style.flexDirection = "column";
+        content.style.gap = "8px";
+        content.style.flex = "1";
+
+        if (choice.image) {
+            const img = document.createElement("img");
+            img.src = sanitizeImageUrl(choice.image);
+            img.style.maxHeight = "120px";
+            img.style.width = "auto";
+            img.style.alignSelf = "flex-start";
+            img.style.borderRadius = "4px";
+            img.onerror = () => { img.style.display = 'none'; };
+            content.appendChild(img);
+        }
+
+        const text = document.createElement("div");
+        text.className = "mc-text";
+        text.textContent = choice.text;
+        content.appendChild(text);
+
+        btn.appendChild(content);
+
+        if (Array.isArray(currentAnswer) && currentAnswer.includes(choice.id)) {
+            btn.classList.add("selected");
+        }
+
+        if (!isAnswered) {
+            btn.onclick = () => {
+                if (quiz?.quiz.mode === 'exam') {
+                    toggleMCSelection(q.id, choice.id, btn, !!allowMultiple);
+                } else {
+                    if (allowMultiple) {
+                        toggleMCSelection(q.id, choice.id, btn, true);
+                    } else {
+                        onAnswer(choice.id);
+                    }
+                }
+            };
+        } else {
+            if (choice.isCorrect) btn.classList.add("correct");
+            if (Array.isArray(currentAnswer) && currentAnswer.includes(choice.id) && !choice.isCorrect) {
+                btn.classList.add("incorrect");
+            }
+            btn.disabled = true;
+        }
+        answersContainer.appendChild(btn);
+    });
+
+    if (allowMultiple && !isAnswered) {
+        const submitBtn = document.createElement("button");
+        submitBtn.className = "btn btn-primary submit-mc-btn";
+        submitBtn.textContent = (quiz?.quiz.mode === 'exam') ? t('quiz.answered') : t('quiz.nextQuestion');
+        submitBtn.onclick = () => {
+            const selected = Array.from(answersContainer.querySelectorAll(".answer-btn.selected"))
+                .map(b => b.dataset.choiceId);
+            onAnswer(selected);
+        };
+        if (quiz?.quiz.mode !== 'exam') {
+            answersContainer.appendChild(submitBtn);
+        }
+    }
+}
+
+function toggleMCSelection(qId, choiceId, btn, multiple) {
+    if (!quiz) return;
+    let current = quiz.userAnswers.get(qId) || [];
+    if (!Array.isArray(current)) current = [current];
+
+    if (multiple) {
+        if (current.includes(choiceId)) {
+            current = current.filter((id) => id !== choiceId);
+            btn.classList.remove("selected");
+        } else {
+            current.push(choiceId);
+            btn.classList.add("selected");
+        }
+    } else {
+        answersContainer.querySelectorAll(".answer-btn").forEach(b => b.classList.remove("selected"));
+        current = [choiceId];
+        btn.classList.add("selected");
+    }
+
+    quiz.userAnswers.set(qId, current);
+    if (quiz.quiz.mode === 'exam') {
+        renderExamNavigation();
+    }
+}
+
+function renderNumeric(q) {
+    const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
+    const currentVal = quiz?.userAnswers.get(q.id) || "";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.className = "quiz-input numeric-input";
+    input.value = currentVal;
+    input.placeholder = "0.00";
+    input.disabled = !!isAnswered;
+
+    input.oninput = () => {
+        if (quiz) quiz.userAnswers.set(q.id, input.value);
+        if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+    };
+
+    if (quiz?.quiz.mode !== 'exam' && !isAnswered) {
+        input.onkeydown = (e) => { if (e.key === 'Enter') onAnswer(input.value); };
+    }
+
+    answersContainer.appendChild(input);
+
+    if (!isAnswered && quiz?.quiz.mode !== 'exam') {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary";
+        btn.textContent = t('quiz.nextQuestion');
+        btn.onclick = () => onAnswer(input.value);
+        answersContainer.appendChild(btn);
+    }
+}
+
+function renderFillBlank(q) {
+    const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
+    const currentAnswers = quiz?.userAnswers.get(q.id) || [];
+    const blankCount = (q.prompt.match(/___/g) || []).length;
+
+    const container = document.createElement("div");
+    container.className = "blanks-container";
+
+    for (let i = 0; i < blankCount; i++) {
+        const row = document.createElement("div");
+        row.className = "blank-row";
+        const label = document.createElement("span");
+        label.className = "blank-label";
+        label.textContent = `${i + 1}:`;
+        row.appendChild(label);
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "quiz-input blank-input";
+        input.value = currentAnswers[i] || "";
+        input.disabled = !!isAnswered;
+
+        input.oninput = () => {
+            const answers = quiz?.userAnswers.get(q.id) || [];
+            answers[i] = input.value;
+            quiz?.userAnswers.set(q.id, answers);
+            if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+        };
+
+        row.appendChild(input);
+        container.appendChild(row);
+    }
+
+    answersContainer.appendChild(container);
+
+    if (!isAnswered && quiz?.quiz.mode !== 'exam') {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary";
+        btn.textContent = t('quiz.nextQuestion');
+        btn.onclick = () => onAnswer(quiz?.userAnswers.get(q.id));
+        answersContainer.appendChild(btn);
+    }
+}
+
+function renderTrueFalse(q) {
+    const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
+    const currentAnswer = quiz?.userAnswers.get(q.id);
+
+    const options = [
+        { val: true, text: "TRUE", color: "#4CAF50" },
+        { val: false, text: "FALSE", color: "#f44336" }
+    ];
+
+    options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "answer-btn tf-btn";
+        btn.textContent = opt.text;
+        btn.style.borderColor = opt.color;
+
+        if (currentAnswer !== undefined && (currentAnswer === opt.val || currentAnswer === String(opt.val))) {
+            btn.classList.add("selected");
+            btn.style.background = opt.color;
+            btn.style.color = "white";
+        }
+
+        if (!isAnswered) {
+            btn.onclick = () => {
+                if (quiz?.quiz.mode === 'exam') {
+                    quiz.userAnswers.set(q.id, opt.val);
+                    renderAnswers(q);
+                    renderExamNavigation();
+                } else {
+                    onAnswer(opt.val);
+                }
+            };
+        } else {
+            if (q.isTrue === opt.val) btn.classList.add("correct");
+            if (currentAnswer === opt.val && q.isTrue !== opt.val) btn.classList.add("incorrect");
+            btn.disabled = true;
+        }
+        answersContainer.appendChild(btn);
+    });
+}
+
+function renderTextInput(q) {
+    const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
+    const currentVal = quiz?.userAnswers.get(q.id) || "";
+
+    const input = q.isLongAnswer ? document.createElement("textarea") : document.createElement("input");
+    input.className = "quiz-input text-input";
+    if (input instanceof HTMLTextAreaElement) input.rows = 5;
+    input.value = currentVal;
+    input.disabled = !!isAnswered;
+
+    input.oninput = () => {
+        if (quiz) quiz.userAnswers.set(q.id, input.value);
+        if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+    };
+
+    answersContainer.appendChild(input);
+
+    if (!isAnswered && quiz?.quiz.mode !== 'exam') {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-primary";
+        btn.textContent = t('quiz.nextQuestion');
+        btn.onclick = () => onAnswer(input.value);
+        answersContainer.appendChild(btn);
+    }
+}
+
+function renderImageUpload(q) {
+    const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
+    const currentAnswer = quiz?.userAnswers.get(q.id);
+
+    if (currentAnswer) {
+        const img = document.createElement("img");
+        img.src = sanitizeImageUrl(currentAnswer);
+        img.className = "uploaded-preview";
+        img.style.maxWidth = "100%";
+        img.style.borderRadius = "8px";
+        img.style.marginBottom = "15px";
+        answersContainer.appendChild(img);
+    }
+
+    if (!isAnswered) {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.style.display = "none";
+
+        const btn = document.createElement("button");
+        btn.className = "btn btn-secondary";
+        btn.textContent = currentAnswer ? "Change Photo" : "📷 Upload Work";
+        btn.onclick = () => input.click();
+
+        input.onchange = (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const base64 = ev.target?.result;
+                quiz?.userAnswers.set(q.id, base64);
+                renderAnswers(q);
+                if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+            };
+            reader.readAsDataURL(file);
+        };
+
+        answersContainer.appendChild(input);
+        answersContainer.appendChild(btn);
+
+        if (quiz?.quiz.mode !== 'exam') {
+            const sub = document.createElement("button");
+            sub.className = "btn btn-primary";
+            sub.textContent = t('quiz.nextQuestion');
+            sub.style.marginLeft = "10px";
+            sub.onclick = () => onAnswer(quiz?.userAnswers.get(q.id));
+            answersContainer.appendChild(sub);
+        }
+    }
+}
+
+export function onAnswer(answer) {
+    if (!quiz || (quiz.hasAnswered && quiz.quiz.mode !== 'exam')) return;
+
+    quiz.submitAnswer(answer);
+
+    if (quiz.quiz.mode !== 'exam') {
+        renderQuiz();
+    }
+}
+
+export function renderQuiz() {
+    if (!quiz) return;
+
+    const headerTitle = document.querySelector(".quiz-header h1");
+    if (headerTitle) { headerTitle.textContent = quiz.quiz.title; }
+
+    if (quiz.quiz.mode === 'exam') {
+        renderExamNavigation();
+    } else {
+        renderQuestionCounter();
+    }
+
+    renderQuestion(quiz.currentQuestion);
+    renderAnswers(quiz.currentQuestion);
+
+    if (quiz.quiz.mode !== 'exam') {
+        if (quiz.hasAnswered) {
+            const grading = quiz.gradeQuestion(quiz.currentQuestion, quiz.userAnswers.get(quiz.currentQuestion.id));
+            renderStatus(grading.isCorrect ? t('quiz.correct') : t('quiz.incorrect'), grading.isCorrect ? "correct" : "incorrect");
+        } else {
+            renderStatus(t('quiz.chooseAnswer'), "neutral");
+        }
+    } else {
+        renderStatus(`${t('quiz.answered')}: ${quiz.userAnswers.size} / ${quiz.shuffledQuestions.length}`, "neutral");
+    }
+
+    renderNextButton();
+
+    const config = quiz.quiz.timerConfig || { mode: 'question', limitSeconds: 30 };
+    if (!quiz.hasAnswered) {
+        startTimer(config, () => {
+            if (quiz?.quiz.mode === 'exam') {
+                showResults();
+            } else {
+                onAnswer(null);
+            }
+        });
+    }
+}
+
+export function renderExamNavigation() {
+    if (!quiz) return;
+    const navId = "exam-nav";
+    let nav = document.getElementById(navId);
+
+    if (quiz.shuffledQuestions.length <= 1) {
+        if (nav) nav.style.display = "none";
+        return;
+    }
+
+    if (!nav) {
+        nav = document.createElement("div");
+        nav.id = navId;
+        nav.className = "exam-navigation";
+        document.querySelector(".quiz-main")?.prepend(nav);
+    }
+
+    nav.style.display = "flex";
+    clearElement(nav);
+
+    quiz.shuffledQuestions.forEach((q, idx) => {
+        const isAnswered = quiz.userAnswers.has(q.id);
+        const isActive = quiz.currentIndex === idx;
+
+        const btn = document.createElement("button");
+        btn.className = `nav-dot ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''}`;
+        btn.textContent = String(idx + 1);
+        btn.onclick = () => window.jumpTo(idx);
+        nav.appendChild(btn);
+    });
+
+    window.jumpTo = (idx) => {
+        if (!quiz) return;
+        quiz.jumpToQuestion(idx);
+        renderQuiz();
+    };
+}
+
+export function renderStatus(message, kind) {
+    const colorClass = kind === "correct" ? "badge badge-correct" : kind === "incorrect" ? "badge badge-incorrect" : "badge";
+    const scoreText = `${t('quiz.score')}: ${quiz?.score ?? 0}`;
+    clearElement(statusContainer);
+
+    const msgSpan = document.createElement("span");
+    msgSpan.className = colorClass;
+    msgSpan.textContent = message;
+    statusContainer.appendChild(msgSpan);
+
+    if (quiz?.quiz.mode !== 'exam') {
+        const scoreSpan = document.createElement("span");
+        scoreSpan.className = "badge";
+        scoreSpan.textContent = scoreText;
+        statusContainer.appendChild(scoreSpan);
+    }
+}
+
+export function renderQuestionCounter() {
+    if (!quiz) return;
+    const counterId = "question-counter";
+    let counter = document.getElementById(counterId);
+    if (!counter) {
+        counter = document.createElement("div");
+        counter.id = counterId;
+        counter.className = "question-counter";
+        questionContainer.insertBefore(counter, questionContainer.firstChild);
+    }
+    counter.textContent = `${t('quiz.question')} ${quiz.currentIndex + 1} ${t('quiz.of')} ${quiz.shuffledQuestions.length}`;
+}
+
+export function renderNextButton() {
+    const btnId = "next-btn";
+    let btn = document.getElementById(btnId);
+    if (!btn) {
+        btn = document.createElement("button");
+        btn.id = btnId;
+        btn.className = "btn btn-primary";
+        btn.style.marginTop = "15px";
+        statusContainer.appendChild(btn);
+    }
+
+    if (!quiz) {
+        btn.style.display = "none";
+        return;
+    }
+
+    if (quiz.quiz.mode === 'exam') {
+        const q = quiz;
+        btn.style.display = "block";
+        if (q.isLastQuestion) {
+            btn.textContent = t('quiz.examSubmit');
+            btn.onclick = () => {
+                const unanswered = q.shuffledQuestions.length - q.userAnswers.size;
+                const confirmMsg = unanswered > 0 ?
+                    `Tau dar liko ${unanswered} neatsakytų klausimų. Ar tikrai norite pateikti?` :
+                    t('quiz.examConfirm');
+                if (confirm(confirmMsg)) showResults();
+            };
+        } else {
+            btn.textContent = t('quiz.nextQuestion');
+            btn.onclick = () => {
+                q.nextQuestion();
+                renderQuiz();
+            };
+        }
+    } else {
+        if (quiz.isLastQuestion && quiz.hasAnswered) {
+            btn.style.display = "block";
+            btn.textContent = t('quiz.viewResults');
+            btn.onclick = showResults;
+        } else {
+            btn.style.display = quiz.hasAnswered ? "block" : "none";
+            btn.textContent = t('quiz.nextQuestion');
+            btn.onclick = () => {
+                quiz.nextQuestion();
+                renderQuiz();
+            };
+        }
+    }
+}
+
+export function showResults() {
+    if (!quiz) return;
+    clearTimer();
+
+    const params = new URLSearchParams(window.location.search);
+    const isPreview = params.get("preview") === "true";
+
+    const results = quiz.getResults();
+    const studentName = localStorage.getItem("current_student_name") || "Anonymous";
+
+    saveResult({
+        name: studentName,
+        quizId: quiz.quiz.id,
+        quizTitle: quiz.quiz.title,
+        score: results.score,
+        maxScore: results.total,
+        date: new Date().toISOString(),
+        details: results.questionResults
+    });
+
+    questionContainer.style.display = "none";
+    answersContainer.style.display = "none";
+    statusContainer.style.display = "none";
+    document.getElementById("exam-nav")?.remove();
+
+    const resultsId = "results-container";
+    let container = document.getElementById(resultsId);
+    if (!container) {
+        container = document.createElement("div");
+        container.id = resultsId;
+        container.className = "results-container fade-in";
+        document.querySelector(".quiz-main").appendChild(container);
+    }
+
+    const timeMin = Math.floor(results.totalTime / 60000);
+    const timeSec = Math.floor((results.totalTime % 60000) / 1000);
+
+    const card = document.createElement("div");
+    card.className = "results-card";
+
+    const title = document.createElement("h2");
+    title.textContent = t('quiz.complete');
+    card.appendChild(title);
+
+    const scoreDiv = document.createElement("div");
+    scoreDiv.className = "final-score";
+    const percentDiv = document.createElement("div");
+    percentDiv.className = "big-percent";
+    percentDiv.textContent = `${results.percentage}%`;
+    const ratioDiv = document.createElement("div");
+    ratioDiv.className = "small-ratio";
+    ratioDiv.textContent = `${results.score} / ${results.total}`;
+    scoreDiv.appendChild(percentDiv);
+    scoreDiv.appendChild(ratioDiv);
+    card.appendChild(scoreDiv);
+
+    const statsDiv = document.createElement("div");
+    statsDiv.className = "final-stats";
+    const timeSpan = document.createElement("span");
+    timeSpan.textContent = `⏱ ${timeMin}:${timeSec.toString().padStart(2, '0')}`;
+    statsDiv.appendChild(timeSpan);
+    card.appendChild(statsDiv);
+
+    const showDetails = quiz.quiz.showDetailedResults !== false && quiz.quiz.mode !== 'exam';
+
+    if (showDetails) {
+        const reviewList = document.createElement("div");
+        reviewList.className = "results-review-list";
+        reviewList.style.marginTop = "30px";
+        reviewList.style.textAlign = "left";
+
+        const h3 = document.createElement("h3");
+        h3.style.borderBottom = "2px solid var(--accent)";
+        h3.style.paddingBottom = "8px";
+        h3.textContent = t('dashboard.review');
+        reviewList.appendChild(h3);
+
+        results.questionResults.forEach((r, idx) => {
+            const item = document.createElement("div");
+            item.className = `result-item ${r.isCorrect ? 'correct' : (r.pendingReview ? 'pending' : 'incorrect')}`;
+            item.style.padding = "15px";
+            item.style.borderRadius = "8px";
+            item.style.marginBottom = "15px";
+            item.style.background = "rgba(255,255,255,0.03)";
+            item.style.borderLeft = `4px solid ${r.isCorrect ? 'var(--success)' : (r.pendingReview ? 'var(--accent)' : 'var(--danger)')}`;
+
+            const qNum = document.createElement("div");
+            qNum.style.fontWeight = "bold";
+            qNum.style.marginBottom = "5px";
+            qNum.textContent = `${t('quiz.question')} ${idx + 1}`;
+            item.appendChild(qNum);
+
+            const qPrompt = document.createElement("div");
+            qPrompt.style.marginBottom = "10px";
+            qPrompt.style.fontStyle = "italic";
+            qPrompt.textContent = r.questionPrompt;
+            item.appendChild(qPrompt);
+
+            const ansInfo = document.createElement("div");
+            ansInfo.style.fontSize = "0.9rem";
+            const strong = document.createElement("strong");
+            strong.textContent = "Atsakymas: ";
+            ansInfo.appendChild(strong);
+            appendResultAnswer(r, ansInfo);
+            item.appendChild(ansInfo);
+
+            if (r.pendingReview) {
+                const pend = document.createElement("div");
+                pend.style.color = "var(--accent)";
+                pend.style.fontSize = "0.8rem";
+                pend.style.marginTop = "5px";
+                pend.textContent = `⏳ ${t('quiz.pending')}`;
+                item.appendChild(pend);
+            }
+            reviewList.appendChild(item);
+        });
+        card.appendChild(reviewList);
+    }
+
+    if (isPreview) {
+        const previewInfo = document.createElement("div");
+        previewInfo.className = "preview-finished-info";
+        previewInfo.style.marginTop = "25px";
+        previewInfo.style.padding = "15px";
+        previewInfo.style.background = "rgba(251, 191, 36, 0.1)";
+        previewInfo.style.border = "1px solid var(--accent)";
+        previewInfo.style.borderRadius = "8px";
+        previewInfo.style.color = "var(--accent)";
+        previewInfo.style.fontWeight = "bold";
+        previewInfo.style.textAlign = "center";
+        previewInfo.textContent = t('quiz.previewFinished');
+        card.appendChild(previewInfo);
+    }
+
+    const actions = document.createElement("div");
+    actions.style.marginTop = "30px";
+    actions.style.display = "flex";
+    actions.style.gap = "15px";
+    actions.style.justifyContent = "center";
+
+    const menuBtn = document.createElement("button");
+    menuBtn.className = "btn btn-secondary";
+    menuBtn.textContent = t('quiz.backToMenu');
+    menuBtn.onclick = () => {
+        container.remove();
+        location.reload(); // Simple reload to reset state
+    };
+    actions.appendChild(menuBtn);
+
+    card.appendChild(actions);
+    container.appendChild(card);
+}
+
+function appendResultAnswer(r, container) {
+    if (r.type === 'image-upload' && r.answer) {
+        const img = document.createElement("img");
+        img.src = sanitizeImageUrl(r.answer);
+        img.style.maxHeight = "100px";
+        img.style.display = "block";
+        img.style.marginTop = "5px";
+        container.appendChild(img);
+        return;
+    }
+    const txt = document.createTextNode(Array.isArray(r.answer) ? r.answer.join(', ') : String(r.answer || t('quiz.noAnswer')));
+    container.appendChild(txt);
+}
