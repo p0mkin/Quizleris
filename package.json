@@ -1,19 +1,20 @@
 {
-  "name": "Quizleris",
+  "name": "quizleris",
   "version": "0.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "vercel": "chmod +x node_modules/.bin/* && npx tsc && cp index.html style.css dist/ && cp -r assets dist/ 2>/dev/null",
+    "vercel": "chmod +x node_modules/.bin/* 2>/dev/null && npx -y tsc && cp index.html style.css dist/ && cp -r assets dist/ 2>/dev/null",
     "build": "npx tsc",
     "dev": "tsc --watch",
-    "start": "http-server . -o"
+    "start": "http-server dist -o"
   },
   "keywords": [],
   "author": "e1tvis",
   "license": "ISC",
   "type": "commonjs",
-  "devDependencies": {
+  "dependencies": {
     "typescript": "^5.9.3"
-  }
+  },
+  "devDependencies": {}
 }
