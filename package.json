@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "vercel": "tsc && cp index.html style.css dist/ && cp -r assets dist/ 2>/dev/null || true",
-    "build": "tsc",
+    "vercel": "npx tsc && cp index.html style.css dist/ && cp -r assets dist/ 2>/dev/null",
+    "build": "npx tsc",
     "dev": "tsc --watch",
     "start": "http-server . -o"
   },
