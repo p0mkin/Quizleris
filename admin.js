@@ -98,6 +98,12 @@ export function toggleAdminMode() {
     }
 }
 
+export function onLanguageChange() {
+    if (adminMode) {
+        renderAdminForm();
+    }
+}
+
 export function renderAdminForm() {
     if (!adminQuiz) return;
 
@@ -130,8 +136,8 @@ export function renderAdminForm() {
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <h3 style="margin:0;">${t('admin.question')} ${qIdx + 1}</h3>
         <div style="display: flex; gap: 10px; align-items: center;">
-          <label style="font-size: 0.9rem;">${t('admin.qType')}</label>
-          <select class="admin-q-type-selector input-field" data-qidx="${qIdx}">
+          <label for="q-type-${qIdx}" style="font-size: 0.9rem;">${t('admin.qType')}</label>
+          <select id="q-type-${qIdx}" class="admin-q-type-selector input-field" data-qidx="${qIdx}">
             <option value="multiple-choice" ${q.type === 'multiple-choice' || !q.type ? 'selected' : ''}>${t('admin.typeMC')}</option>
             <option value="numeric" ${q.type === 'numeric' ? 'selected' : ''}>${t('admin.typeNum')}</option>
             <option value="fill-blank" ${q.type === 'fill-blank' ? 'selected' : ''}>${t('admin.typeBlank')}</option>
@@ -149,15 +155,15 @@ export function renderAdminForm() {
                     style="position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; padding: 0; min-width: 24px; font-size: 10px;">✕</button>
           </div>
         ` : `
-          <button class="admin-add-q-image btn btn-secondary btn-icon" data-qidx="${qIdx}" style="font-size: 0.8rem; padding: 6px 12px;">
+          <button class="admin-add-q-image btn" data-qidx="${qIdx}">
             ${t('admin.addImage')}
           </button>
         `}
       </div>
-      <label>
+      <label for="q-prompt-${qIdx}" style="display: block; margin-bottom: 8px;">
         ${t('admin.promptLabel')}
-        <textarea class="admin-question-prompt input-field" data-qidx="${qIdx}">${q.prompt}</textarea>
       </label>
+      <textarea id="q-prompt-${qIdx}" class="admin-question-prompt input-field" data-qidx="${qIdx}">${q.prompt}</textarea>
       <div class="admin-q-config-area" data-qidx="${qIdx}">
         ${renderQuestionConfig(q, qIdx)}
       </div>
@@ -322,7 +328,7 @@ function renderQuestionConfig(q, qIdx) {
         case 'multiple-choice':
             return `<div style="margin-bottom: 10px;">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem;">
-            <input type="checkbox" class="admin-mc-multiple" data-qidx="${qIdx}" ${q.allowMultipleAnswers ? 'checked' : ''} />
+            <input type="checkbox" id="mc-multiple-${qIdx}" class="admin-mc-multiple" data-qidx="${qIdx}" ${q.allowMultipleAnswers ? 'checked' : ''} />
             ${t('admin.mcMultiple')}
           </label>
         </div>
@@ -330,8 +336,9 @@ function renderQuestionConfig(q, qIdx) {
           ${(q.choices || []).map((choice, cIdx) => `
             <div class="admin-choice-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
-                <input type="${q.allowMultipleAnswers ? 'checkbox' : 'radio'}" name="correct_${qIdx}" ${choice.isCorrect ? 'checked' : ''} data-cidx="${cIdx}" />
-                <input type="text" class="admin-choice-text input-field" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" style="flex:1;" />
+                <input type="${q.allowMultipleAnswers ? 'checkbox' : 'radio'}" id="correct-${qIdx}-${cIdx}" name="correct_${qIdx}" ${choice.isCorrect ? 'checked' : ''} data-cidx="${cIdx}" aria-label="${t('admin.correctAnswer')}" />
+                <label for="choice-text-${qIdx}-${cIdx}" class="visually-hidden">${t('admin.choiceText')}</label>
+                <input type="text" id="choice-text-${qIdx}-${cIdx}" class="admin-choice-text input-field" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" style="flex:1;" />
                 <button class="admin-choice-add-image btn btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">🖼</button>
                 <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-cidx="${cIdx}">✕</button>
               </div>
@@ -342,20 +349,21 @@ function renderQuestionConfig(q, qIdx) {
                 </div>` : ''}
             </div>`).join('')}
         </div>
-        <button class="admin-add-choice-btn btn" data-qidx="${qIdx}">+ ${t('admin.addChoice')}</button>`;
+        <button class="admin-add-choice-btn btn" data-qidx="${qIdx}">${t('admin.addChoice')}</button>`;
         case 'numeric':
             return `
         <div style="display: flex; gap: 15px; align-items: flex-end;">
           <div style="flex: 2;">
-            <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.numAnswer')}</label>
-            <input type="number" class="admin-num-answer input-field" data-qidx="${qIdx}" value="${q.correctAnswerNumber ?? ''}" />
+            <label for="num-ans-${qIdx}" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.numAnswer')}</label>
+            <input type="number" id="num-ans-${qIdx}" class="admin-num-answer input-field" data-qidx="${qIdx}" value="${q.correctAnswerNumber ?? ''}" />
           </div>
           <div style="flex: 1;">
-            <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.numTolerance')}</label>
-            <input type="number" class="admin-num-tolerance input-field" data-qidx="${qIdx}" value="${q.toleranceValue ?? 0}" />
+            <label for="num-tol-${qIdx}" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.numTolerance')}</label>
+            <input type="number" id="num-tol-${qIdx}" class="admin-num-tolerance input-field" data-qidx="${qIdx}" value="${q.toleranceValue ?? 0}" />
           </div>
           <div style="flex: 1;">
-            <select class="admin-num-tolerance-type input-field" data-qidx="${qIdx}">
+            <label for="num-tol-type-${qIdx}" class="visually-hidden">${t('admin.tolType')}</label>
+            <select id="num-tol-type-${qIdx}" class="admin-num-tolerance-type input-field" data-qidx="${qIdx}">
               <option value="absolute" ${q.toleranceType === 'absolute' ? 'selected' : ''}>${t('admin.tolAbs')}</option>
               <option value="percentage" ${q.toleranceType === 'percentage' ? 'selected' : ''}>${t('admin.tolPct')}</option>
             </select>
@@ -371,10 +379,10 @@ function renderQuestionConfig(q, qIdx) {
         <div class="admin-blanks-list" data-qidx="${qIdx}" style="display: flex; flex-direction: column; gap: 12px;">
           ${Array.from({ length: blankCount }).map((_, bIdx) => `
             <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 12px;">
-              <span style="font-size: 0.9rem; font-weight: bold; color: var(--accent); min-width: 90px;">Laukas ${bIdx + 1}:</span>
-              <input type="text" class="admin-blank-answer input-field" data-qidx="${qIdx}" data-bidx="${bIdx}" value="${q.blankAnswers?.[bIdx] || ''}" style="flex:1;" />
+              <label for="blank-${qIdx}-${bIdx}" style="font-size: 0.9rem; font-weight: bold; color: var(--accent); min-width: 90px;">${t('admin.blankField')} ${bIdx + 1}:</label>
+              <input type="text" id="blank-${qIdx}-${bIdx}" class="admin-blank-answer input-field" data-qidx="${qIdx}" data-bidx="${bIdx}" value="${q.blankAnswers?.[bIdx] || ''}" style="flex:1;" />
             </div>`).join('')}
-          ${blankCount === 0 ? `<p style="color: #ff9800; font-size: 0.85rem;">! Nepamirškite klausime įrašyti ___</p>` : ''}
+          ${blankCount === 0 ? `<p style="color: #ff9800; font-size: 0.85rem;">${t('admin.fillBlankReminder')}</p>` : ''}
         </div>`;
         }
         case 'true-false':
@@ -393,11 +401,11 @@ function renderQuestionConfig(q, qIdx) {
             return `
         <div style="margin-bottom: 15px;">
           <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.9rem; margin-bottom: 8px;">
-            <input type="checkbox" class="admin-text-long" data-qidx="${qIdx}" ${q.isLongAnswer ? 'checked' : ''} />
+            <input type="checkbox" id="text-long-${qIdx}" class="admin-text-long" data-qidx="${qIdx}" ${q.isLongAnswer ? 'checked' : ''} />
             ${t('admin.longAnswer')}
           </label>
-          <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.keywords')}</label>
-          <input type="text" class="admin-text-keywords input-field" data-qidx="${qIdx}" value="${(q.expectedKeywords || []).join(', ')}" />
+          <label for="text-keywords-${qIdx}" style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.keywords')}</label>
+          <input type="text" id="text-keywords-${qIdx}" class="admin-text-keywords input-field" data-qidx="${qIdx}" value="${(q.expectedKeywords || []).join(', ')}" />
         </div>`;
         case 'image-upload':
             return `<div style="background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 8px; text-align: center;"><p style="margin:0; font-size: 0.9rem;">${t('admin.imageUploadHint')}</p></div>`;

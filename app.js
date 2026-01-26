@@ -1,4 +1,4 @@
-import { setupAdmin, toggleAdminMode } from "./admin.js";
+import { setupAdmin, toggleAdminMode, onLanguageChange } from "./admin.js";
 import { renderStartMenu, setupMenu, renderStudentJoin, isStudentViewActive, handleStudentClick } from "./menu.js";
 import { setupDashboard, renderDashboard } from "./dashboard.js";
 import { loadQuiz } from "./storage.js";
@@ -42,6 +42,7 @@ function initApp() {
                 langLabel.textContent = newLang.toUpperCase();
 
                 updatePageLanguage();
+                onLanguageChange();
 
                 const currentParams = new URLSearchParams(window.location.search);
                 const currentDash = currentParams.get("dashboard");
