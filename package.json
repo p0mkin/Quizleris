@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "vercel": "echo 'No build step'",
-    "build": "echo 'No build step'",
-    "start": "http-server . -o"
+    "vercel": "node copy-files.js",
+    "build": "node copy-files.js",
+    "start": "http-server dist -o"
   },
   "keywords": [],
   "author": "e1tvis",

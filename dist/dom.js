@@ -8,8 +8,8 @@ export function getRequiredElement(id) {
     }
     return el;
 }
-// DOM refs (non-null, typed) - initialized immediately
+
+// DOM refs - initialized immediately
 export const questionContainer = getRequiredElement("question-container");
 export const answersContainer = getRequiredElement("answers-container");
 export const statusContainer = getRequiredElement("status-container");
-//# sourceMappingURL=dom.js.map

@@ -1,22 +1,51 @@
 import { t } from "./i18n.js";
+
 // Storage keys
 export const STORAGE_KEY_PREFIX = "quiz_";
 export const STORAGE_KEY_ALL_IDS = "quiz_all_ids";
 export const STORAGE_KEY_IMAGE_REGISTRY_PREFIX = "quiz-images_";
+
 /**
  * Generates a unique-enough ID for a quiz using the current timestamp.
- * NOTE: In a multi-user or high-concurrency environment, this should be replaced with a UUID.
  */
 export function generateQuizId() {
     return `quiz_${Date.now()}`;
 }
+
 /**
  * Persists a quiz object to localStorage and updates the global ID index.
- * WARNING: localStorage has a size limit (usually ~5MB). Quizzes with many images may exceed this.
+ * Includes validation to remove invalid images that could break the app.
  */
 export function saveQuizToStorage(quizData) {
+    // Validate images before saving (Fix for Blocked on Image issue)
+    if (quizData.questions) {
+        quizData.questions.forEach(q => {
+            if (q.image && !q.image.startsWith("data:image") && !q.image.startsWith("local:")) {
+                console.warn(`Invalid image format in question ${q.id}, removing to prevent corruption.`);
+                delete q.image;
+            }
+            if (q.choices) {
+                q.choices.forEach(c => {
+                    if (c.image && !c.image.startsWith("data:image") && !c.image.startsWith("local:")) {
+                        console.warn(`Invalid image format in choice ${c.id}, removing to prevent corruption.`);
+                        delete c.image;
+                    }
+                });
+            }
+        });
+    }
+
     const key = STORAGE_KEY_PREFIX + quizData.id;
-    localStorage.setItem(key, JSON.stringify(quizData));
+    try {
+        localStorage.setItem(key, JSON.stringify(quizData));
+    } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+            alert("Storage full! Please delete some old quizzes or remove large images.");
+            return;
+        }
+        throw e;
+    }
+
     // Track all quiz IDs
     const allIds = getAllQuizIds();
     if (!allIds.includes(quizData.id)) {
@@ -24,56 +53,53 @@ export function saveQuizToStorage(quizData) {
         localStorage.setItem(STORAGE_KEY_ALL_IDS, JSON.stringify(allIds));
     }
 }
+
 // Load quiz from localStorage by ID
 export function loadQuizFromStorage(quizId) {
     const key = STORAGE_KEY_PREFIX + quizId;
     const data = localStorage.getItem(key);
     if (!data) {
         // Fallback to premade
-        if (quizId === "demo")
-            return getDemoQuiz();
+        if (quizId === "demo") return getDemoQuiz();
         const premade = getPremadeQuizzes().find(q => q.id === quizId);
         return premade || null;
     }
     try {
         return JSON.parse(data);
-    }
-    catch {
+    } catch {
         return null;
     }
 }
+
 // Get all saved quiz IDs
 export function getAllQuizIds() {
     const data = localStorage.getItem(STORAGE_KEY_ALL_IDS);
-    if (!data)
-        return [];
+    if (!data) return [];
     try {
         return JSON.parse(data);
-    }
-    catch {
+    } catch {
         return [];
     }
 }
+
 /**
  * The primary loading routine for the application.
- * Checks for a 'quiz' URL parameter (Base64 data) first, then falls back to localStorage.
- * Handles the heavy lifting of Base64 decoding and image registry restoration.
  */
 export function loadQuiz() {
     // Check URL param first: ?quiz=abc123
     const params = new URLSearchParams(window.location.search);
     const quizParam = params.get("quiz");
+
     if (quizParam) {
         // Try to decode as base64 JSON (for sharing)
         try {
             // Enhanced decoding: supports UTF-8 (Lithuanian chars) and handles binary data safety.
-            // Uses TextDecoder to correctly interpret multi-byte characters.
             const binary = atob(quizParam);
             const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++)
-                bytes[i] = binary.charCodeAt(i);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
             const decoded = new TextDecoder().decode(bytes);
             const parsed = JSON.parse(decoded);
+
             // Restore image prefixes (Approach #1) and Local Registry references (Approach #2)
             const prefix = "data:image/jpeg;base64,";
             parsed.questions.forEach(q => {
@@ -86,6 +112,7 @@ export function loadQuiz() {
                     const imgId = q.image.substring(6);
                     q.image = getImageFromRegistry(parsed.id, imgId) || "";
                 }
+
                 q.choices?.forEach(c => {
                     // Handle Approach #1
                     if (c.image && !c.image.startsWith("data:") && !c.image.startsWith("local:")) {
@@ -98,28 +125,28 @@ export function loadQuiz() {
                     }
                 });
             });
+
             return parsed;
-        }
-        catch (e) {
+        } catch (e) {
             console.warn("Base64 decode failed, trying raw string lookup", e);
             // If not base64, treat as localStorage ID
             const loaded = loadQuizFromStorage(quizParam);
-            if (loaded)
-                return loaded;
+            if (loaded) return loaded;
         }
     }
+
     // Try to load from localStorage (most recent, or first available)
     const allIds = getAllQuizIds();
     if (allIds.length > 0) {
         const lastId = allIds[allIds.length - 1];
         const loaded = loadQuizFromStorage(lastId);
-        if (loaded)
-            return loaded;
+        if (loaded) return loaded;
     }
-    // Fallback: return a default demo quiz
+
     // Fallback: return a default demo quiz
     return getDemoQuiz();
 }
+
 export function getDemoQuiz() {
     return {
         id: "demo",
@@ -138,6 +165,7 @@ export function getDemoQuiz() {
         ],
     };
 }
+
 export function getPremadeQuizzes() {
     return [
         getDemoQuiz(),
@@ -235,7 +263,9 @@ export function getPremadeQuizzes() {
         }
     ];
 }
+
 export const STORAGE_KEY_RESULTS = "quiz_results";
+
 /**
  * Records a student's quiz result in the local history.
  */
@@ -244,33 +274,39 @@ export function saveResult(result) {
     results.push(result);
     localStorage.setItem(STORAGE_KEY_RESULTS, JSON.stringify(results));
 }
+
 export function getResults() {
     const data = localStorage.getItem(STORAGE_KEY_RESULTS);
-    if (!data)
-        return [];
+    if (!data) return [];
     try {
         return JSON.parse(data);
-    }
-    catch {
+    } catch {
         return [];
     }
 }
+
 export function getResultsByQuizId(quizId) {
     return getResults().filter(r => r.quizId === quizId);
 }
+
 export function clearResults() {
     localStorage.removeItem(STORAGE_KEY_RESULTS);
 }
+
 export function getHighScores() {
     const results = getResults();
     const highScores = new Map();
+
     results.forEach(r => {
         if (!highScores.has(r.quizId) || r.score > highScores.get(r.quizId).score) {
             highScores.set(r.quizId, r);
         }
     });
+
     return Array.from(highScores.values());
 }
+
+
 /**
  * Stores a map of image IDs to Base64 data for a specific quiz.
  * This is used to keep shareable URLs short by moving image data to local storage.
@@ -279,17 +315,15 @@ export function saveImageRegistry(quizId, images) {
     const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
     localStorage.setItem(key, JSON.stringify(images));
 }
+
 export function getImageFromRegistry(quizId, imgId) {
     const key = STORAGE_KEY_IMAGE_REGISTRY_PREFIX + quizId;
     const data = localStorage.getItem(key);
-    if (!data)
-        return null;
+    if (!data) return null;
     try {
         const registry = JSON.parse(data);
         return registry[imgId] || null;
-    }
-    catch {
+    } catch {
         return null;
     }
 }
-//# sourceMappingURL=storage.js.map

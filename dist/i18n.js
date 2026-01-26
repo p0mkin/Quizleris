@@ -1,4 +1,5 @@
 // Internationalization (i18n) system for Lithuanian and English
+
 const translations = {
     lt: {
         // Start Menu
@@ -8,6 +9,7 @@ const translations = {
         'menu.student': 'Esu Mokinys',
         'menu.admin': 'Esu Administratorius',
         'menu.dashboard': 'Peržiūrėti Rezultatus',
+
         // Student Form
         'student.nameLabel': 'Jūsų vardas (neprivaloma)',
         'student.namePlaceholder': 'Įveskite vardą rezultatų sekimui',
@@ -16,6 +18,7 @@ const translations = {
         'student.quizIdPlaceholder': 'demo',
         'student.startBtn': 'Pradėti testą',
         'student.backBtn': 'Atgal',
+
         // Admin Panel
         'admin.title': 'Sukurti/Redaguoti testą',
         'admin.dashboard': 'Rezultatai',
@@ -59,6 +62,8 @@ const translations = {
         'admin.removeImage': 'Pašalinti nuotrauką',
         'admin.blankHint': 'Instrukcija: Naudokite ___ (trys pabraukimo brūkšniai) užpildymo vietoms.',
         'admin.insertBlank': 'Įterpti tarpą (___)',
+        'admin.fillBlankReminder': '! Nepamirškite klausime įrašyti ___',
+        'admin.blankField': 'Laukas',
         'admin.shuffleConfig': 'Maišymo nustatymai:',
         'admin.shuffleQuestions': 'Maišyti klausimus',
         'admin.shuffleAnswers': 'Maišyti atsakymų variantus',
@@ -67,12 +72,16 @@ const translations = {
         'admin.modeExam': 'Egzaminas (rezultatai po pateikimo)',
         'admin.promptLabel': 'Klausimas (LaTeX):',
         'admin.addChoice': '+ Pridėti pasirinkimą',
+        'admin.choiceText': 'Atsakymo variantas',
+        'admin.correctAnswer': 'Teisingas atsakymas',
+        'admin.tolType': 'Paklaidos tipas',
         'admin.removeQuestion': 'Pašalinti klausimą',
         'admin.removeChoice': 'Ištrinti pasirinkimą',
         'admin.quizSaved': 'Testas išsaugotas!',
         'admin.shareUrl': 'Dalintis nuoroda:',
         'admin.quizId': 'Testo ID:',
         'admin.copyLink': 'Kopijuoti nuorodą',
+
         // Alerts
         'alert.deleteQuestion': 'Ar tikrai norite ištrinti šį klausimą?',
         'alert.deleteChoice': 'Pašalinti šį pasirinkimą?',
@@ -88,6 +97,7 @@ const translations = {
         'alert.jsonParseError': 'Klaida analizuojant JSON',
         'alert.clearHistory': 'Ar tikrai norite išvalyti visą istoriją?',
         'alert.linkCopied': 'Nuoroda nukopijuota!',
+
         // Dashboard
         'dashboard.title': 'Rezultatų suvestinė',
         'dashboard.recentActivity': 'Naujausia veikla',
@@ -100,6 +110,7 @@ const translations = {
         'dashboard.noResults': 'Rezultatų dar nėra.',
         'dashboard.backToMenu': 'Atgal į meniu',
         'dashboard.clearHistory': 'Išvalyti istoriją',
+
         // Quiz UI Flow
         'quiz.question': 'Klausimas',
         'quiz.of': 'iš',
@@ -124,6 +135,7 @@ const translations = {
         'quiz.pending': 'Laukiama vertinimo',
         'quiz.previewFinished': 'Peržiūra baigta — galite uždaryti šį skirtuką.',
         'quiz.jumpTo': 'Eiti į',
+
         // Quiz Titles
         'quiz.demoTitle': 'Bandomasis testas',
         'quiz.algebraTitle': 'Algebros pagrindai',
@@ -151,6 +163,7 @@ const translations = {
         'admin.confirmCancel': 'Ar tikrai norite atšaukti? Visi neįrašyti pakeitimai bus prarasti.',
         'admin.previewName': 'Peržiūra',
         'admin.closePreview': 'Uždaryti peržiūrą',
+
         // Join Screen
         'join.joinQuiz': 'Prisijungti prie testo:',
         'join.questions': 'klausimai',
@@ -158,6 +171,7 @@ const translations = {
         'join.namePlaceholder': 'Įveskite savo vardą',
         'join.startBtn': 'Pradėti testą',
         'join.backBtn': 'Atgal',
+
         // Detailed Dashboard
         'dashboard.actions': 'Veiksmai',
         'dashboard.details': 'Detalės',
@@ -175,9 +189,10 @@ const translations = {
         'app.title': 'Quizleris',
         'menu.welcome': 'Welcome to Quizleris',
         'menu.selectRole': 'Please select your role:',
-        'menu.student': "I'm Student",
-        'menu.admin': "I'm Admin",
+        'menu.student': "I’m a Student",
+        'menu.admin': "I’m an Admin",
         'menu.dashboard': 'View Dashboard',
+
         // Student Form
         'student.nameLabel': 'Your Name (optional)',
         'student.namePlaceholder': 'Enter name to track results',
@@ -186,6 +201,7 @@ const translations = {
         'student.quizIdPlaceholder': 'demo',
         'student.startBtn': 'Start Quiz',
         'student.backBtn': 'Back',
+
         // Admin Panel
         'admin.title': 'Create/Edit Quiz',
         'admin.dashboard': 'Dashboard',
@@ -229,6 +245,8 @@ const translations = {
         'admin.removeImage': 'Remove Image',
         'admin.blankHint': 'Instruction: Use ___ (three underscores) for blanks.',
         'admin.insertBlank': 'Insert Blank (___)',
+        'admin.fillBlankReminder': '! Remember to include ___ in the question text',
+        'admin.blankField': 'Field',
         'admin.shuffleConfig': 'Shuffle Settings:',
         'admin.shuffleQuestions': 'Shuffle Questions',
         'admin.shuffleAnswers': 'Shuffle Choices',
@@ -237,12 +255,16 @@ const translations = {
         'admin.modeExam': 'Exam (results after submission)',
         'admin.promptLabel': 'Prompt (LaTeX):',
         'admin.addChoice': '+ Add Choice',
+        'admin.choiceText': 'Choice text',
+        'admin.correctAnswer': 'Correct answer',
+        'admin.tolType': 'Tolerance type',
         'admin.removeQuestion': 'Remove Question',
         'admin.removeChoice': 'Delete choice',
         'admin.quizSaved': 'Quiz saved!',
         'admin.shareUrl': 'Share URL:',
         'admin.quizId': 'Quiz ID:',
         'admin.copyLink': 'Copy Link',
+
         // Alerts
         'alert.deleteQuestion': 'Are you sure you want to delete this specific question?',
         'alert.deleteChoice': 'Remove this choice?',
@@ -258,6 +280,7 @@ const translations = {
         'alert.jsonParseError': 'Error parsing JSON',
         'alert.clearHistory': 'Are you sure you want to clear all history?',
         'alert.linkCopied': 'Link copied!',
+
         // Dashboard
         'dashboard.title': 'Results Dashboard',
         'dashboard.recentActivity': 'Recent Activity',
@@ -270,6 +293,7 @@ const translations = {
         'dashboard.noResults': 'No results recorded yet.',
         'dashboard.backToMenu': 'Back to Menu',
         'dashboard.clearHistory': 'Clear History',
+
         // Quiz UI Flow
         'quiz.question': 'Question',
         'quiz.of': 'of',
@@ -294,10 +318,12 @@ const translations = {
         'quiz.pending': 'Pending Review',
         'quiz.previewFinished': 'Preview finished — you can close this tab.',
         'quiz.jumpTo': 'Jump to',
+
         // Quiz Titles
         'quiz.demoTitle': 'Demo Quiz',
         'quiz.algebraTitle': 'Algebra Basics',
         'quiz.combinatoricsTitle': 'Combinatorics Challenge',
+
         // Join Screen
         'admin.adminMode': 'Admin Mode',
         'admin.playerMode': 'Player Mode',
@@ -321,6 +347,7 @@ const translations = {
         'admin.confirmCancel': 'Are you sure you want to cancel? Any unsaved changes will be lost.',
         'admin.previewName': 'Preview',
         'admin.closePreview': 'Close Preview',
+
         // Join Screen
         'join.joinQuiz': 'Join Quiz:',
         'join.questions': 'questions',
@@ -328,6 +355,7 @@ const translations = {
         'join.namePlaceholder': 'Enter your name',
         'join.startBtn': 'Start Quiz',
         'join.backBtn': 'Back',
+
         // Detailed Dashboard
         'dashboard.actions': 'Actions',
         'dashboard.details': 'Details',
@@ -341,7 +369,9 @@ const translations = {
         'dashboard.review': 'Review',
     }
 };
+
 let currentLanguage = 'lt'; // Default to Lithuanian
+
 // Initialize language from localStorage or default
 export function initLanguage() {
     const saved = localStorage.getItem('quiz_language');
@@ -349,19 +379,23 @@ export function initLanguage() {
         currentLanguage = saved;
     }
 }
+
 // Get current language
 export function getLanguage() {
     return currentLanguage;
 }
+
 // Set language and persist
 export function setLanguage(lang) {
     currentLanguage = lang;
     localStorage.setItem('quiz_language', lang);
 }
+
 // Translate a key
 export function t(key) {
     return translations[currentLanguage][key] || key;
 }
+
 // Update all translatable elements in the DOM
 export function updatePageLanguage() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -370,6 +404,7 @@ export function updatePageLanguage() {
             el.textContent = t(key);
         }
     });
+
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         const key = el.getAttribute('data-i18n-placeholder')?.trim();
         if (key && el instanceof HTMLInputElement) {
@@ -377,4 +412,3 @@ export function updatePageLanguage() {
         }
     });
 }
-//# sourceMappingURL=i18n.js.map
