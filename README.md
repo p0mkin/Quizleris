@@ -1,12 +1,9 @@
 # Quizleris – Modular Math Quiz Web App
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Vanilla JS](https://img.shields.io/badge/Vanilla%20JS-ES2020-green)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/)
 
 **Quizleris** is a lightweight, professional, browser-based math quiz platform designed for educators and students. Built with pure Vanilla JS for maximum compatibility and performance, it features advanced math rendering, OCR capabilities, and local persistence—no backend required.
-
-![Admin Interface](screenshots/Edit_Quiz.png)
 
 ## 🚀 Key Features
 
