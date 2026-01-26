@@ -1,6 +1,7 @@
 import { getRequiredElement } from "./dom.js";
 import type { Quiz } from "./types.js";
-import { t, updatePageLanguage } from "./i18n.js";
+import { updatePageLanguage, t, getLanguage, setLanguage } from "./lang.js";
+import { renderTopicsPage } from "./topics.js";
 
 // DOM Elements
 let startMenu: HTMLElement;
@@ -56,9 +57,25 @@ export function renderStartMenu(): void {
     quizHeader.style.display = "none";
     quizMain.style.display = "none";
 
+    const quizBackBtn = document.getElementById("quiz-back-btn");
+    if (quizBackBtn) quizBackBtn.style.display = "none";
+
+    // Restore visibility of hidden children
+    const welcomeH1 = startMenu.querySelector('h1') as HTMLElement;
+    const welcomeP = startMenu.querySelector('p') as HTMLElement;
+    const menuActions = startMenu.querySelector(".menu-actions") as HTMLElement;
+    if (welcomeH1) welcomeH1.style.display = "block";
+    if (welcomeP) welcomeP.style.display = "block";
+    if (menuActions) menuActions.style.display = "flex";
+
     // Clear student form if it exists
     const container = startMenu.querySelector(".student-form-container");
     if (container) container.remove();
+
+    // Clear topics container if it exists
+    const topicsContainer = startMenu.querySelector(".topics-page-container");
+    if (topicsContainer) topicsContainer.remove();
+
     isStudentMenuOpen = false;
 }
 
@@ -199,10 +216,22 @@ export function handleStudentClick(): void {
         inp.style.width = "100%";
         inp.style.padding = "10px";
         inp.style.borderRadius = "12px";
-        inp.style.border = "1px solid rgba(255,255,255,0.1)";
+        inp.style.border = "1px solid #D1D5DB";
         inp.style.background = "var(--bg)";
         inp.style.color = "var(--text)";
         inp.style.marginBottom = "4px";
+        inp.style.transition = "all 0.2s";
+
+        // Add focus handler for green outline
+        inp.addEventListener('focus', () => {
+            inp.style.borderColor = "#06C167";
+            inp.style.boxShadow = "0 0 0 2px rgba(6, 193, 103, 0.18)";
+            inp.style.outline = "none";
+        });
+        inp.addEventListener('blur', () => {
+            inp.style.borderColor = "#D1D5DB";
+            inp.style.boxShadow = "none";
+        });
     });
 
     startMenu.appendChild(formContainer);
@@ -228,35 +257,56 @@ export function handleStudentClick(): void {
         startStudentQuiz(nameInput.value, quizInput.value);
     });
 
-    // Populate premade quizzes
+    // Populate premade quizzes based on language
     const premadeList = formContainer.querySelector("#premade-list");
     if (premadeList) {
-        getPremadeQuizzes().forEach(q => {
+        const currentLang = getLanguage();
+        if (currentLang === 'en') {
             const btn = document.createElement("button");
             btn.className = "btn";
+            btn.style.width = "100%";
+            btn.style.padding = "10px 12px";
             btn.style.fontSize = "0.9rem";
-            btn.style.padding = "8px 12px";
-            btn.style.background = "rgba(255,255,255,0.05)";
-            btn.textContent = q.title;
+            btn.style.border = "1px solid #D1D5DB";
+            btn.style.borderRadius = "12px";
+            btn.style.background = "#ffffff";
+            btn.style.transition = "all 0.2s";
+            btn.setAttribute("data-i18n", "student.premadeEnglish");
+            btn.textContent = t("student.premadeEnglish");
+
+            // Add focus handler for green outline
+            btn.onfocus = () => {
+                btn.style.borderColor = "#06C167";
+                btn.style.boxShadow = "0 0 0 2px rgba(6, 193, 103, 0.18)";
+                btn.style.outline = "none";
+            };
+            btn.onblur = () => {
+                btn.style.borderColor = "#D1D5DB";
+                btn.style.boxShadow = "none";
+            };
+
             btn.onclick = () => {
-                const nameInput = document.getElementById("student-name") as HTMLInputElement;
-                // We load this quiz directly, bypassing ID lookup if possible, 
-                // OR we rely on ID lookup if we make storage support it.
-                // But getPremadeQuizzes returns the object. 
-                // Let's modify startStudentQuiz to accept an optional object, or just handle it here.
-
-                // Easiest: Pass the object directly to a new overload or handle logic here.
-                // Let's call a helper or modify startStudentQuiz to take (name, id | object).
-                // For now, I'll just set the inputs and click start? No, ID might not work if it's "algebra" and not saved.
-                // Actually, startStudentQuiz logic tries to load from storage.
-                // I should probably save these premade quizzes to storage on first load? 
-                // OR separate the "Start with Quiz Object" logic.
-
-                // Let's create a direct start function or modify startStudentQuiz.
-                startStudentQuizDirect(nameInput.value, q);
+                window.history.pushState({}, "", "/topics");
+                renderTopicsPage();
             };
             premadeList.appendChild(btn);
-        });
+        } else {
+            const btn = document.createElement("button");
+            btn.className = "btn";
+            btn.disabled = true;
+            btn.style.width = "100%";
+            btn.style.padding = "10px 12px";
+            btn.style.fontSize = "0.9rem";
+            btn.style.border = "1px solid #D1D5DB";
+            btn.style.borderRadius = "12px";
+            btn.style.background = "#ffffff";
+            btn.style.opacity = "0.5";
+            btn.style.cursor = "not-allowed";
+            btn.setAttribute("data-i18n", "student.premadeLithuanianSoon");
+            btn.setAttribute("title", t("student.premadeLithuanianHint"));
+            btn.textContent = t("student.premadeLithuanianSoon");
+            premadeList.appendChild(btn);
+        }
     }
 }
 

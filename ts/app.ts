@@ -1,10 +1,11 @@
 // Main entry point - imports and initializes all modules
 
-import { setupAdmin, toggleAdminMode } from "./admin.js";
+import { setupAdmin, toggleAdminMode, refreshAdminUI } from "./quiz-editor.js";
 import { renderStartMenu, setupMenu, renderStudentJoin, isStudentViewActive, handleStudentClick } from "./menu.js";
 import { setupDashboard, renderDashboard } from "./dashboard.js";
 import { loadQuiz } from "./storage.js";
-import { initLanguage, setLanguage, getLanguage, updatePageLanguage } from "./i18n.js";
+import { initLanguage, setLanguage, getLanguage, updatePageLanguage } from "./lang.js";
+import { renderTopicsPage } from "./topics.js";
 
 /**
  * The main application bootstrap function.
@@ -33,12 +34,16 @@ function initApp() {
         const params = new URLSearchParams(window.location.search);
         const dashParam = params.get("dashboard");
         const quizParam = params.get("quiz");
+        const viewParam = params.get("view");
+        const path = window.location.pathname;
 
         if (dashParam) {
             renderDashboard(dashParam);
         } else if (quizParam) {
             const quizData = loadQuiz();
             renderStudentJoin(quizData);
+        } else if (viewParam === "topics" || path === "/topics" || path.endsWith("/topics")) {
+            renderTopicsPage();
         } else {
             renderStartMenu();
         }
@@ -77,6 +82,9 @@ function initApp() {
                         renderStartMenu();
                     }
                 }
+
+                // 3. Refresh Admin UI if active
+                try { refreshAdminUI(); } catch (e) { console.error("Admin Refresh Error", e); }
             });
         }
 
@@ -92,3 +100,14 @@ if (document.readyState === "loading") {
 } else {
     initApp();
 }
+
+// Global popstate handler for back/forward navigation
+window.onpopstate = () => {
+    const langToggle = document.getElementById('lang-toggle');
+    if (langToggle && langToggle.parentElement) {
+        langToggle.parentElement.style.display = "block"; // Reset to visible
+    }
+
+    // Simple routing reload
+    location.reload();
+};

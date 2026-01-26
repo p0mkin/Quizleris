@@ -11,13 +11,14 @@
   <link rel="stylesheet" href="style.css" />
   <!-- KaTeX CSS for LaTeX rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <link rel="stylesheet" href="style.css?v=20260126235000">
   <!-- KaTeX JS (we'll call this later from TypeScript-compiled JS) -->
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <!-- Tesseract.js for OCR -->
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=20260127011500"></script>
 </head>
 
 <body>
@@ -26,7 +27,13 @@
     <header class="quiz-header" style="display: none;">
       <!-- Place spresk.lt logo here -->
       <!-- <img src="path/to/spresk-logo.png" alt="spresk.lt" style="height: 40px;"> -->
-      <h1 data-i18n="app.title">Quizleris</h1>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button id="quiz-back-btn" class="btn" style="display: none; font-size: 0.9rem; padding: 6px 12px;"
+          title="Back">
+          ← <span data-i18n="quiz.backBtn">Back</span>
+        </button>
+        <h1 data-i18n="app.title">Quizleris</h1>
+      </div>
       <button id="admin-toggle" class="btn" style="display: none;" data-i18n="admin.adminMode">Admin Mode</button>
     </header>
     <section id="start-menu" class="start-menu">

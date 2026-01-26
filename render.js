@@ -1,58 +1,59 @@
-import { quiz, setQuiz, QuizState } from "./state.js";
+import { QuizState, quiz, setQuiz } from "./state.js";
 import { questionContainer, answersContainer, statusContainer } from "./dom.js";
 import { startTimer, clearTimer } from "./timer.js";
 import { saveResult } from "./storage.js";
-import { t } from "./i18n.js";
-
-export function initializeQuiz(quizData) {
-    console.log("Initializing Quiz with data:", quizData?.id);
-    setQuiz(new QuizState(quizData));
-    renderQuiz();
-}
-
+import { renderStartMenu } from "./menu.js";
+import { t } from "./lang.js";
 /**
  * SANITIZER: Explicitly filters and validates URLs to ensure they contain safe image data.
+ * This is a critical security layer to prevent XSS via malicious data URIs or protocols.
+ *
+ * @param url - The raw URL string from the quiz data
+ * @returns A validated safe URL or a transparent GIF fallback
  */
 function sanitizeImageUrl(url) {
     const safeFallback = "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
-    if (!url) return safeFallback;
-
+    if (!url)
+        return safeFallback;
     // Only allow specific, safe data:image formats using strict regex
     if (/^data:image\/(jpeg|png|gif|webp);base64,/.test(url)) {
         return url;
     }
-
     // Allow internal app registry references
     if (url.startsWith('local:img')) {
         return url;
     }
-
     // Strictly enforce http/https for remote URLs
     try {
         const u = new URL(url);
         if (u.protocol === 'http:' || u.protocol === 'https:') {
             return url;
         }
-    } catch {
+    }
+    catch {
         // Fall through to safe fallback
     }
-
     return safeFallback;
 }
-
+/**
+ * Utility to recursively remove all child nodes from an element.
+ * NOTE: Does not explicitly remove event listeners, relying on GC if listeners are not held elsewhere.
+ */
 function clearElement(el) {
-    if (!el) return;
+    if (!el)
+        return;
     while (el.firstChild) {
         el.removeChild(el.firstChild);
     }
 }
-
+/**
+ * Renders the question text, prompt decorations, and any associated images.
+ * Also triggers KaTeX rendering for LaTeX math.
+ */
 export function renderQuestion(q) {
     const typeLabel = q.type === 'multiple-choice' ?
         (q.allowMultipleAnswers ? t('quiz.mcSelectAll') : t('quiz.mcSelectOne')) : '';
-
     clearElement(questionContainer);
-
     // Header
     const header = document.createElement("div");
     header.className = "prompt-header";
@@ -60,7 +61,6 @@ export function renderQuestion(q) {
     header.style.justifyContent = "space-between";
     header.style.alignItems = "center";
     header.style.marginBottom = "10px";
-
     if (typeLabel) {
         const badge = document.createElement("span");
         badge.className = "badge";
@@ -68,62 +68,44 @@ export function renderQuestion(q) {
         badge.style.color = "white";
         badge.textContent = typeLabel;
         header.appendChild(badge);
-    } else {
+    }
+    else {
         header.appendChild(document.createElement("span"));
     }
     questionContainer.appendChild(header);
-
     // Image
     if (q.image) {
         const imgDiv = document.createElement("div");
         imgDiv.className = "question-image";
         imgDiv.style.marginBottom = "15px";
         imgDiv.style.textAlign = "center";
-
         const img = document.createElement("img");
         img.src = sanitizeImageUrl(q.image);
         img.style.maxWidth = "100%";
         img.style.maxHeight = "300px";
         img.style.borderRadius = "8px";
         img.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
-
-        // FIX: Add error handling for images
-        img.onerror = () => {
-            img.style.display = 'none';
-            const errorMsg = document.createElement('p');
-            errorMsg.textContent = "(Image failed to load)";
-            errorMsg.style.color = "#ff6b6b";
-            errorMsg.style.fontSize = "0.8rem";
-            imgDiv.appendChild(errorMsg);
-        };
-
         imgDiv.appendChild(img);
         questionContainer.appendChild(imgDiv);
     }
-
     // Prompt
     const prompt = document.createElement("div");
     prompt.className = "prompt";
     prompt.textContent = q.prompt;
     questionContainer.appendChild(prompt);
-
     // Ask KaTeX to render LaTeX
-    if (window.renderMathInElement) {
-        window.renderMathInElement(questionContainer, {
-            delimiters: [
-                { left: "\\(", right: "\\)", display: false },
-                { left: "\\[", right: "\\]", display: true },
-            ],
-        });
-    }
+    window.renderMathInElement(questionContainer, {
+        delimiters: [
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true },
+        ],
+    });
 }
-
 // Main Answers Dispatcher
 export function renderAnswers(q) {
     const type = q.type || 'multiple-choice';
     clearElement(answersContainer);
     answersContainer.className = "answers-container " + type;
-
     switch (type) {
         case 'multiple-choice':
             renderMCQ(q);
@@ -144,41 +126,40 @@ export function renderAnswers(q) {
             renderImageUpload(q);
             break;
     }
-
-    if (window.renderMathInElement) {
-        window.renderMathInElement(answersContainer, {
-            delimiters: [
-                { left: "\\(", right: "\\)", display: false },
-                { left: "\\[", right: "\\]", display: true },
-            ],
-        });
-    }
+    window.renderMathInElement(answersContainer, {
+        delimiters: [
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true },
+        ],
+    });
 }
-
+/**
+ * Specialized renderer for Multiple Choice Questions.
+ * Handles both single-select (radio) and multi-select (checkbox) styles.
+ * Provides immediate feedback in Practice mode, or selection state in Exam mode.
+ */
 function renderMCQ(q) {
     const allowMultiple = q.allowMultipleAnswers;
+    // userAnswers might contain a single ID or an array of IDs
     const currentAnswer = quiz?.userAnswers.get(q.id) || [];
+    // Feedback is hidden in Exam mode until final submission
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
-
-    (q.choices || []).forEach((choice) => {
+    q.choices?.forEach((choice) => {
         const btn = document.createElement("button");
         btn.className = "answer-btn mc-btn";
-        if (allowMultiple) btn.classList.add("checkbox-style");
-
+        if (allowMultiple)
+            btn.classList.add("checkbox-style");
         btn.dataset.choiceId = choice.id;
-
         const indicator = document.createElement("div");
         indicator.className = "mc-indicator";
         indicator.textContent = allowMultiple ? '' : choice.id.toUpperCase();
         btn.appendChild(indicator);
-
         const content = document.createElement("div");
         content.className = "mc-content";
         content.style.display = "flex";
         content.style.flexDirection = "column";
         content.style.gap = "8px";
         content.style.flex = "1";
-
         if (choice.image) {
             const img = document.createElement("img");
             img.src = sanitizeImageUrl(choice.image);
@@ -186,35 +167,35 @@ function renderMCQ(q) {
             img.style.width = "auto";
             img.style.alignSelf = "flex-start";
             img.style.borderRadius = "4px";
-            img.onerror = () => { img.style.display = 'none'; };
             content.appendChild(img);
         }
-
         const text = document.createElement("div");
         text.className = "mc-text";
         text.textContent = choice.text;
         content.appendChild(text);
-
         btn.appendChild(content);
-
         if (Array.isArray(currentAnswer) && currentAnswer.includes(choice.id)) {
             btn.classList.add("selected");
         }
-
         if (!isAnswered) {
             btn.onclick = () => {
                 if (quiz?.quiz.mode === 'exam') {
                     toggleMCSelection(q.id, choice.id, btn, !!allowMultiple);
-                } else {
+                }
+                else {
                     if (allowMultiple) {
                         toggleMCSelection(q.id, choice.id, btn, true);
-                    } else {
+                    }
+                    else {
                         onAnswer(choice.id);
                     }
                 }
             };
-        } else {
-            if (choice.isCorrect) btn.classList.add("correct");
+        }
+        else {
+            // Feedback mode
+            if (choice.isCorrect)
+                btn.classList.add("correct");
             if (Array.isArray(currentAnswer) && currentAnswer.includes(choice.id) && !choice.isCorrect) {
                 btn.classList.add("incorrect");
             }
@@ -222,7 +203,6 @@ function renderMCQ(q) {
         }
         answersContainer.appendChild(btn);
     });
-
     if (allowMultiple && !isAnswered) {
         const submitBtn = document.createElement("button");
         submitBtn.className = "btn btn-primary submit-mc-btn";
@@ -232,59 +212,59 @@ function renderMCQ(q) {
                 .map(b => b.dataset.choiceId);
             onAnswer(selected);
         };
+        // In exam mode, we don't need a specific submit for MC, but it helps UX
         if (quiz?.quiz.mode !== 'exam') {
             answersContainer.appendChild(submitBtn);
         }
     }
 }
-
 function toggleMCSelection(qId, choiceId, btn, multiple) {
-    if (!quiz) return;
+    if (!quiz)
+        return;
     let current = quiz.userAnswers.get(qId) || [];
-    if (!Array.isArray(current)) current = [current];
-
+    if (!Array.isArray(current))
+        current = [current];
     if (multiple) {
         if (current.includes(choiceId)) {
             current = current.filter((id) => id !== choiceId);
             btn.classList.remove("selected");
-        } else {
+        }
+        else {
             current.push(choiceId);
             btn.classList.add("selected");
         }
-    } else {
+    }
+    else {
+        // Radio style
         answersContainer.querySelectorAll(".answer-btn").forEach(b => b.classList.remove("selected"));
         current = [choiceId];
         btn.classList.add("selected");
     }
-
     quiz.userAnswers.set(qId, current);
     if (quiz.quiz.mode === 'exam') {
-        renderExamNavigation();
+        renderExamNavigation(); // Update "answered" status
     }
 }
-
 function renderNumeric(q) {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentVal = quiz?.userAnswers.get(q.id) || "";
-
     const input = document.createElement("input");
     input.type = "number";
     input.className = "quiz-input numeric-input";
     input.value = currentVal;
     input.placeholder = "0.00";
     input.disabled = !!isAnswered;
-
     input.oninput = () => {
-        if (quiz) quiz.userAnswers.set(q.id, input.value);
-        if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+        if (quiz)
+            quiz.userAnswers.set(q.id, input.value);
+        if (quiz?.quiz.mode === 'exam')
+            renderExamNavigation();
     };
-
     if (quiz?.quiz.mode !== 'exam' && !isAnswered) {
-        input.onkeydown = (e) => { if (e.key === 'Enter') onAnswer(input.value); };
+        input.onkeydown = (e) => { if (e.key === 'Enter')
+            onAnswer(input.value); };
     }
-
     answersContainer.appendChild(input);
-
     if (!isAnswered && quiz?.quiz.mode !== 'exam') {
         const btn = document.createElement("button");
         btn.className = "btn btn-primary";
@@ -293,15 +273,17 @@ function renderNumeric(q) {
         answersContainer.appendChild(btn);
     }
 }
-
+/**
+ * Renders Fill-in-the-Blank inputs based on '___' patterns in the prompt.
+ * NOTE: The prompt parsing relies on a simple regex; complex patterns might need a formal parser.
+ */
 function renderFillBlank(q) {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentAnswers = quiz?.userAnswers.get(q.id) || [];
+    // Counting occurrences of '___' to determine number of input fields
     const blankCount = (q.prompt.match(/___/g) || []).length;
-
     const container = document.createElement("div");
     container.className = "blanks-container";
-
     for (let i = 0; i < blankCount; i++) {
         const row = document.createElement("div");
         row.className = "blank-row";
@@ -309,26 +291,22 @@ function renderFillBlank(q) {
         label.className = "blank-label";
         label.textContent = `${i + 1}:`;
         row.appendChild(label);
-
         const input = document.createElement("input");
         input.type = "text";
         input.className = "quiz-input blank-input";
         input.value = currentAnswers[i] || "";
         input.disabled = !!isAnswered;
-
         input.oninput = () => {
             const answers = quiz?.userAnswers.get(q.id) || [];
             answers[i] = input.value;
             quiz?.userAnswers.set(q.id, answers);
-            if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+            if (quiz?.quiz.mode === 'exam')
+                renderExamNavigation();
         };
-
         row.appendChild(input);
         container.appendChild(row);
     }
-
     answersContainer.appendChild(container);
-
     if (!isAnswered && quiz?.quiz.mode !== 'exam') {
         const btn = document.createElement("button");
         btn.className = "btn btn-primary";
@@ -337,64 +315,61 @@ function renderFillBlank(q) {
         answersContainer.appendChild(btn);
     }
 }
-
 function renderTrueFalse(q) {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentAnswer = quiz?.userAnswers.get(q.id);
-
     const options = [
         { val: true, text: "TRUE", color: "#4CAF50" },
         { val: false, text: "FALSE", color: "#f44336" }
     ];
-
     options.forEach(opt => {
         const btn = document.createElement("button");
         btn.className = "answer-btn tf-btn";
         btn.textContent = opt.text;
         btn.style.borderColor = opt.color;
-
         if (currentAnswer !== undefined && (currentAnswer === opt.val || currentAnswer === String(opt.val))) {
             btn.classList.add("selected");
             btn.style.background = opt.color;
             btn.style.color = "white";
         }
-
         if (!isAnswered) {
             btn.onclick = () => {
                 if (quiz?.quiz.mode === 'exam') {
                     quiz.userAnswers.set(q.id, opt.val);
-                    renderAnswers(q);
+                    renderAnswers(q); // re-render to show selection
                     renderExamNavigation();
-                } else {
+                }
+                else {
                     onAnswer(opt.val);
                 }
             };
-        } else {
-            if (q.isTrue === opt.val) btn.classList.add("correct");
-            if (currentAnswer === opt.val && q.isTrue !== opt.val) btn.classList.add("incorrect");
+        }
+        else {
+            if (q.isTrue === opt.val)
+                btn.classList.add("correct");
+            if (currentAnswer === opt.val && q.isTrue !== opt.val)
+                btn.classList.add("incorrect");
             btn.disabled = true;
         }
         answersContainer.appendChild(btn);
     });
 }
-
 function renderTextInput(q) {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
     const currentVal = quiz?.userAnswers.get(q.id) || "";
-
     const input = q.isLongAnswer ? document.createElement("textarea") : document.createElement("input");
     input.className = "quiz-input text-input";
-    if (input instanceof HTMLTextAreaElement) input.rows = 5;
+    if (input instanceof HTMLTextAreaElement)
+        input.rows = 5;
     input.value = currentVal;
     input.disabled = !!isAnswered;
-
     input.oninput = () => {
-        if (quiz) quiz.userAnswers.set(q.id, input.value);
-        if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+        if (quiz)
+            quiz.userAnswers.set(q.id, input.value);
+        if (quiz?.quiz.mode === 'exam')
+            renderExamNavigation();
     };
-
     answersContainer.appendChild(input);
-
     if (!isAnswered && quiz?.quiz.mode !== 'exam') {
         const btn = document.createElement("button");
         btn.className = "btn btn-primary";
@@ -403,11 +378,9 @@ function renderTextInput(q) {
         answersContainer.appendChild(btn);
     }
 }
-
 function renderImageUpload(q) {
     const isAnswered = quiz?.hasAnswered && quiz.quiz.mode !== 'exam';
-    const currentAnswer = quiz?.userAnswers.get(q.id);
-
+    const currentAnswer = quiz?.userAnswers.get(q.id); // base64
     if (currentAnswer) {
         const img = document.createElement("img");
         img.src = sanitizeImageUrl(currentAnswer);
@@ -417,34 +390,31 @@ function renderImageUpload(q) {
         img.style.marginBottom = "15px";
         answersContainer.appendChild(img);
     }
-
     if (!isAnswered) {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "image/*";
         input.style.display = "none";
-
         const btn = document.createElement("button");
         btn.className = "btn btn-secondary";
         btn.textContent = currentAnswer ? "Change Photo" : "📷 Upload Work";
         btn.onclick = () => input.click();
-
         input.onchange = (e) => {
             const file = e.target.files?.[0];
-            if (!file) return;
+            if (!file)
+                return;
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const base64 = ev.target?.result;
                 quiz?.userAnswers.set(q.id, base64);
                 renderAnswers(q);
-                if (quiz?.quiz.mode === 'exam') renderExamNavigation();
+                if (quiz?.quiz.mode === 'exam')
+                    renderExamNavigation();
             };
             reader.readAsDataURL(file);
         };
-
         answersContainer.appendChild(input);
         answersContainer.appendChild(btn);
-
         if (quiz?.quiz.mode !== 'exam') {
             const sub = document.createElement("button");
             sub.className = "btn btn-primary";
@@ -455,105 +425,110 @@ function renderImageUpload(q) {
         }
     }
 }
-
+/**
+ * Handles the logic when a user provides an answer to a question.
+ * Records the answer in the state and triggers a re-render for feedback if in Practice mode.
+ */
 export function onAnswer(answer) {
-    if (!quiz || (quiz.hasAnswered && quiz.quiz.mode !== 'exam')) return;
-
+    if (!quiz || (quiz.hasAnswered && quiz.quiz.mode !== 'exam'))
+        return;
     quiz.submitAnswer(answer);
-
     if (quiz.quiz.mode !== 'exam') {
-        renderQuiz();
+        renderQuiz(); // Redraw with feedback
     }
 }
-
+/**
+ * The primary entry point for drawing the current state of the quiz.
+ * Orchestrates prompt rendering, answer rendering, status updates, and timer management.
+ */
 export function renderQuiz() {
-    if (!quiz) return;
-
+    if (!quiz)
+        return;
+    // Update header title
     const headerTitle = document.querySelector(".quiz-header h1");
-    if (headerTitle) { headerTitle.textContent = quiz.quiz.title; }
-
+    if (headerTitle) {
+        headerTitle.textContent = quiz.quiz.title;
+    }
     if (quiz.quiz.mode === 'exam') {
         renderExamNavigation();
-    } else {
+    }
+    else {
         renderQuestionCounter();
     }
-
     renderQuestion(quiz.currentQuestion);
     renderAnswers(quiz.currentQuestion);
-
+    // Status text
     if (quiz.quiz.mode !== 'exam') {
         if (quiz.hasAnswered) {
             const grading = quiz.gradeQuestion(quiz.currentQuestion, quiz.userAnswers.get(quiz.currentQuestion.id));
             renderStatus(grading.isCorrect ? t('quiz.correct') : t('quiz.incorrect'), grading.isCorrect ? "correct" : "incorrect");
-        } else {
+        }
+        else {
             renderStatus(t('quiz.chooseAnswer'), "neutral");
         }
-    } else {
+    }
+    else {
         renderStatus(`${t('quiz.answered')}: ${quiz.userAnswers.size} / ${quiz.shuffledQuestions.length}`, "neutral");
     }
-
     renderNextButton();
-
+    // Start timer (global for entire quiz or per question)
     const config = quiz.quiz.timerConfig || { mode: 'question', limitSeconds: 30 };
     if (!quiz.hasAnswered) {
         startTimer(config, () => {
             if (quiz?.quiz.mode === 'exam') {
-                showResults();
-            } else {
-                onAnswer(null);
+                showResults(); // Hard stop for exam
+            }
+            else {
+                onAnswer(null); // Time out for practice
             }
         });
     }
 }
-
 export function renderExamNavigation() {
-    if (!quiz) return;
+    if (!quiz)
+        return;
     const navId = "exam-nav";
     let nav = document.getElementById(navId);
-
+    // Hide if only one question
     if (quiz.shuffledQuestions.length <= 1) {
-        if (nav) nav.style.display = "none";
+        if (nav)
+            nav.style.display = "none";
         return;
     }
-
     if (!nav) {
         nav = document.createElement("div");
         nav.id = navId;
         nav.className = "exam-navigation";
         document.querySelector(".quiz-main")?.prepend(nav);
     }
-
     nav.style.display = "flex";
     clearElement(nav);
-
     quiz.shuffledQuestions.forEach((q, idx) => {
         const isAnswered = quiz.userAnswers.has(q.id);
         const isActive = quiz.currentIndex === idx;
-
         const btn = document.createElement("button");
         btn.className = `nav-dot ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''}`;
         btn.textContent = String(idx + 1);
         btn.onclick = () => window.jumpTo(idx);
         nav.appendChild(btn);
     });
-
+    // Expose jumpTo globally for onclick handlers
     window.jumpTo = (idx) => {
-        if (!quiz) return;
+        if (!quiz)
+            return;
         quiz.jumpToQuestion(idx);
         renderQuiz();
     };
 }
-
+// Render status message
 export function renderStatus(message, kind) {
     const colorClass = kind === "correct" ? "badge badge-correct" : kind === "incorrect" ? "badge badge-incorrect" : "badge";
     const scoreText = `${t('quiz.score')}: ${quiz?.score ?? 0}`;
     clearElement(statusContainer);
-
     const msgSpan = document.createElement("span");
     msgSpan.className = colorClass;
     msgSpan.textContent = message;
     statusContainer.appendChild(msgSpan);
-
     if (quiz?.quiz.mode !== 'exam') {
         const scoreSpan = document.createElement("span");
         scoreSpan.className = "badge";
@@ -561,9 +536,9 @@ export function renderStatus(message, kind) {
         statusContainer.appendChild(scoreSpan);
     }
 }
-
 export function renderQuestionCounter() {
-    if (!quiz) return;
+    if (!quiz)
+        return;
     const counterId = "question-counter";
     let counter = document.getElementById(counterId);
     if (!counter) {
@@ -574,7 +549,10 @@ export function renderQuestionCounter() {
     }
     counter.textContent = `${t('quiz.question')} ${quiz.currentIndex + 1} ${t('quiz.of')} ${quiz.shuffledQuestions.length}`;
 }
-
+/**
+ * Controls the visibility and text of the main flow button (Next/Submit/Results).
+ * Dynamically changes behavior based on Exam vs Practice mode.
+ */
 export function renderNextButton() {
     const btnId = "next-btn";
     let btn = document.getElementById(btnId);
@@ -585,14 +563,12 @@ export function renderNextButton() {
         btn.style.marginTop = "15px";
         statusContainer.appendChild(btn);
     }
-
     if (!quiz) {
         btn.style.display = "none";
         return;
     }
-
     if (quiz.quiz.mode === 'exam') {
-        const q = quiz;
+        const q = quiz; // Capture for closure
         btn.style.display = "block";
         if (q.isLastQuestion) {
             btn.textContent = t('quiz.examSubmit');
@@ -601,21 +577,25 @@ export function renderNextButton() {
                 const confirmMsg = unanswered > 0 ?
                     `Tau dar liko ${unanswered} neatsakytų klausimų. Ar tikrai norite pateikti?` :
                     t('quiz.examConfirm');
-                if (confirm(confirmMsg)) showResults();
+                if (confirm(confirmMsg))
+                    showResults();
             };
-        } else {
+        }
+        else {
             btn.textContent = t('quiz.nextQuestion');
             btn.onclick = () => {
                 q.nextQuestion();
                 renderQuiz();
             };
         }
-    } else {
+    }
+    else {
         if (quiz.isLastQuestion && quiz.hasAnswered) {
             btn.style.display = "block";
             btn.textContent = t('quiz.viewResults');
             btn.onclick = showResults;
-        } else {
+        }
+        else {
             btn.style.display = quiz.hasAnswered ? "block" : "none";
             btn.textContent = t('quiz.nextQuestion');
             btn.onclick = () => {
@@ -625,17 +605,18 @@ export function renderNextButton() {
         }
     }
 }
-
+/**
+ * Final phase of the quiz.
+ * Stops timers, calculates final results, saves to local history, and displays the results card.
+ */
 export function showResults() {
-    if (!quiz) return;
+    if (!quiz)
+        return;
     clearTimer();
-
     const params = new URLSearchParams(window.location.search);
     const isPreview = params.get("preview") === "true";
-
     const results = quiz.getResults();
     const studentName = localStorage.getItem("current_student_name") || "Anonymous";
-
     saveResult({
         name: studentName,
         quizId: quiz.quiz.id,
@@ -645,12 +626,11 @@ export function showResults() {
         date: new Date().toISOString(),
         details: results.questionResults
     });
-
+    // Clean UI
     questionContainer.style.display = "none";
     answersContainer.style.display = "none";
     statusContainer.style.display = "none";
     document.getElementById("exam-nav")?.remove();
-
     const resultsId = "results-container";
     let container = document.getElementById(resultsId);
     if (!container) {
@@ -659,17 +639,13 @@ export function showResults() {
         container.className = "results-container fade-in";
         document.querySelector(".quiz-main").appendChild(container);
     }
-
     const timeMin = Math.floor(results.totalTime / 60000);
     const timeSec = Math.floor((results.totalTime % 60000) / 1000);
-
     const card = document.createElement("div");
     card.className = "results-card";
-
     const title = document.createElement("h2");
     title.textContent = t('quiz.complete');
     card.appendChild(title);
-
     const scoreDiv = document.createElement("div");
     scoreDiv.className = "final-score";
     const percentDiv = document.createElement("div");
@@ -681,28 +657,25 @@ export function showResults() {
     scoreDiv.appendChild(percentDiv);
     scoreDiv.appendChild(ratioDiv);
     card.appendChild(scoreDiv);
-
     const statsDiv = document.createElement("div");
     statsDiv.className = "final-stats";
     const timeSpan = document.createElement("span");
     timeSpan.textContent = `⏱ ${timeMin}:${timeSec.toString().padStart(2, '0')}`;
     statsDiv.appendChild(timeSpan);
     card.appendChild(statsDiv);
-
+    // In Exam mode, we hide the detailed per-question review to maintain integrity.
+    // In Practice mode, we show it unless explicitly disabled in the config.
     const showDetails = quiz.quiz.showDetailedResults !== false && quiz.quiz.mode !== 'exam';
-
     if (showDetails) {
         const reviewList = document.createElement("div");
         reviewList.className = "results-review-list";
         reviewList.style.marginTop = "30px";
         reviewList.style.textAlign = "left";
-
         const h3 = document.createElement("h3");
         h3.style.borderBottom = "2px solid var(--accent)";
         h3.style.paddingBottom = "8px";
         h3.textContent = t('dashboard.review');
         reviewList.appendChild(h3);
-
         results.questionResults.forEach((r, idx) => {
             const item = document.createElement("div");
             item.className = `result-item ${r.isCorrect ? 'correct' : (r.pendingReview ? 'pending' : 'incorrect')}`;
@@ -711,19 +684,16 @@ export function showResults() {
             item.style.marginBottom = "15px";
             item.style.background = "rgba(255,255,255,0.03)";
             item.style.borderLeft = `4px solid ${r.isCorrect ? 'var(--success)' : (r.pendingReview ? 'var(--accent)' : 'var(--danger)')}`;
-
             const qNum = document.createElement("div");
             qNum.style.fontWeight = "bold";
             qNum.style.marginBottom = "5px";
             qNum.textContent = `${t('quiz.question')} ${idx + 1}`;
             item.appendChild(qNum);
-
             const qPrompt = document.createElement("div");
             qPrompt.style.marginBottom = "10px";
             qPrompt.style.fontStyle = "italic";
             qPrompt.textContent = r.questionPrompt;
             item.appendChild(qPrompt);
-
             const ansInfo = document.createElement("div");
             ansInfo.style.fontSize = "0.9rem";
             const strong = document.createElement("strong");
@@ -731,7 +701,6 @@ export function showResults() {
             ansInfo.appendChild(strong);
             appendResultAnswer(r, ansInfo);
             item.appendChild(ansInfo);
-
             if (r.pendingReview) {
                 const pend = document.createElement("div");
                 pend.style.color = "var(--accent)";
@@ -744,7 +713,6 @@ export function showResults() {
         });
         card.appendChild(reviewList);
     }
-
     if (isPreview) {
         const previewInfo = document.createElement("div");
         previewInfo.className = "preview-finished-info";
@@ -759,36 +727,109 @@ export function showResults() {
         previewInfo.textContent = t('quiz.previewFinished');
         card.appendChild(previewInfo);
     }
-
     const actions = document.createElement("div");
     actions.style.marginTop = "30px";
     actions.style.display = "flex";
     actions.style.gap = "15px";
     actions.style.justifyContent = "center";
-
+    const restartBtn = document.createElement("button");
+    restartBtn.id = "restart-quiz-btn";
+    restartBtn.className = "btn btn-primary";
+    restartBtn.textContent = t('quiz.takeAgain');
+    actions.appendChild(restartBtn);
     const menuBtn = document.createElement("button");
-    menuBtn.className = "btn btn-secondary";
+    menuBtn.id = "back-to-menu-btn";
+    menuBtn.className = "btn";
     menuBtn.textContent = t('quiz.backToMenu');
-    menuBtn.onclick = () => {
-        container.remove();
-        location.reload(); // Simple reload to reset state
-    };
-    actions.appendChild(menuBtn);
-
+    // In preview mode, we hide the menu button to encourage closing the tab
+    if (isPreview) {
+        menuBtn.style.display = "none";
+        const closeBtn = document.createElement("button");
+        closeBtn.id = "close-preview-btn";
+        closeBtn.className = "btn btn-secondary";
+        closeBtn.textContent = t('admin.closePreview');
+        actions.appendChild(closeBtn);
+    }
+    else {
+        actions.appendChild(menuBtn);
+    }
     card.appendChild(actions);
+    clearElement(container);
     container.appendChild(card);
+    window.renderMathInElement(container, {
+        delimiters: [{ left: "\\(", right: "\\)", display: false }, { left: "\\[", right: "\\]", display: true }]
+    });
+    document.getElementById("restart-quiz-btn").onclick = () => {
+        setQuiz(new QuizState(quiz.quiz));
+        container.remove();
+        questionContainer.style.display = "block";
+        answersContainer.style.display = "block";
+        statusContainer.style.display = "flex";
+        renderQuiz();
+    };
+    document.getElementById("back-to-menu-btn")?.addEventListener("click", () => {
+        if (isPreview) {
+            // Force clean redirect to root to clear the huge Base64 quiz data from URL
+            window.location.href = window.location.origin + window.location.pathname;
+        }
+        else {
+            container.remove();
+            renderStartMenu();
+        }
+    });
+    if (isPreview) {
+        document.getElementById("close-preview-btn")?.addEventListener("click", () => {
+            window.close();
+            // Fallback if window.close doesn't work (most browsers allow it only for tabs they opened)
+            alert(t('quiz.previewFinished'));
+        });
+    }
 }
-
-function appendResultAnswer(r, container) {
+function appendResultAnswer(r, parent) {
     if (r.type === 'image-upload' && r.answer) {
+        parent.appendChild(document.createElement("br"));
         const img = document.createElement("img");
         img.src = sanitizeImageUrl(r.answer);
-        img.style.maxHeight = "100px";
-        img.style.display = "block";
+        img.style.maxHeight = "150px";
         img.style.marginTop = "5px";
-        container.appendChild(img);
+        img.style.borderRadius = "4px";
+        img.style.border = "1px solid rgba(255,255,255,0.1)";
+        parent.appendChild(img);
         return;
     }
-    const txt = document.createTextNode(Array.isArray(r.answer) ? r.answer.join(', ') : String(r.answer || t('quiz.noAnswer')));
-    container.appendChild(txt);
+    const txt = Array.isArray(r.answer) ? r.answer.join(', ') : String(r.answer || t('quiz.noAnswer'));
+    parent.appendChild(document.createTextNode(txt));
+}
+export function initializeQuiz(quizData) {
+    setQuiz(new QuizState(quizData));
+    // Show/hide back button for demo/premade quizzes only
+    const backBtn = document.getElementById('quiz-back-btn');
+    const isPremadeOrDemo = quizData.id.startsWith('demo') ||
+        quizData.id.startsWith('algebra') ||
+        quizData.id.startsWith('combinatorics');
+    if (backBtn) {
+        if (isPremadeOrDemo) {
+            backBtn.style.display = 'inline-flex';
+            backBtn.onclick = () => {
+                if (confirm(t('quiz.backConfirm'))) {
+                    // Clear quiz state
+                    setQuiz(null);
+                    clearTimer();
+                    // Hide quiz interface
+                    const quizHeader = document.querySelector('.quiz-header');
+                    const quizMain = document.querySelector('.quiz-main');
+                    if (quizHeader)
+                        quizHeader.style.display = 'none';
+                    if (quizMain)
+                        quizMain.style.display = 'none';
+                    // Show start menu
+                    renderStartMenu();
+                }
+            };
+        }
+        else {
+            backBtn.style.display = 'none';
+        }
+    }
+    renderQuiz();
 }

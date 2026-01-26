@@ -63,6 +63,9 @@ export type Quiz = {
     showDetailedResults?: boolean; // Toggles the visibility of the review list in results
     mode?: QuizMode; // 'practice' or 'exam'
     shuffleConfig?: ShuffleConfig;
+    difficulty?: "beginner" | "intermediate" | "advanced";
+    language?: string;
+    estimatedMinutes?: number;
 };
 
 export interface QuestionResult {

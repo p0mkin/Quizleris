@@ -4,7 +4,7 @@ import { questionContainer, answersContainer, statusContainer } from "./dom.js";
 import { startTimer, clearTimer } from "./timer.js";
 import { saveResult } from "./storage.js";
 import { renderStartMenu } from "./menu.js";
-import { t } from "./i18n.js";
+import { t } from "./lang.js";
 
 /**
  * SANITIZER: Explicitly filters and validates URLs to ensure they contain safe image data.
@@ -879,5 +879,36 @@ function appendResultAnswer(r: QuestionResult, parent: HTMLElement): void {
 
 export function initializeQuiz(quizData: Quiz): void {
     setQuiz(new QuizState(quizData));
+
+    // Show/hide back button for demo/premade quizzes only
+    const backBtn = document.getElementById('quiz-back-btn');
+    const isPremadeOrDemo = quizData.id.startsWith('demo') ||
+        quizData.id.startsWith('algebra') ||
+        quizData.id.startsWith('combinatorics');
+
+    if (backBtn) {
+        if (isPremadeOrDemo) {
+            backBtn.style.display = 'inline-flex';
+            backBtn.onclick = () => {
+                if (confirm(t('quiz.backConfirm'))) {
+                    // Clear quiz state
+                    setQuiz(null);
+                    clearTimer();
+
+                    // Hide quiz interface
+                    const quizHeader = document.querySelector('.quiz-header') as HTMLElement;
+                    const quizMain = document.querySelector('.quiz-main') as HTMLElement;
+                    if (quizHeader) quizHeader.style.display = 'none';
+                    if (quizMain) quizMain.style.display = 'none';
+
+                    // Show start menu
+                    renderStartMenu();
+                }
+            };
+        } else {
+            backBtn.style.display = 'none';
+        }
+    }
+
     renderQuiz();
 }

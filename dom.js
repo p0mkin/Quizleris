@@ -8,8 +8,7 @@ export function getRequiredElement(id) {
     }
     return el;
 }
-
-// DOM refs - initialized immediately
+// DOM refs (non-null, typed) - initialized immediately
 export const questionContainer = getRequiredElement("question-container");
 export const answersContainer = getRequiredElement("answers-container");
 export const statusContainer = getRequiredElement("status-container");

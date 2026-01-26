@@ -1,6 +1,7 @@
+
 import { getRequiredElement } from "./dom.js";
 import { getResults, getHighScores, STORAGE_KEY_RESULTS } from "./storage.js";
-import { t } from "./i18n.js";
+import { t, getLanguage } from "./lang.js";
 import type { QuizResult } from "./types.js";
 
 declare var renderMathInElement: any;

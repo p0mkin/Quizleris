@@ -352,6 +352,67 @@ body {
     display: none;
 }
 
+/* Highlight selected radio/checkbox in Admin UI - NATIVE ACCENT */
+.admin-choice-item input[type="radio"],
+.admin-choice-item input[type="checkbox"] {
+    appearance: auto;
+    -webkit-appearance: radio;
+    width: auto;
+    height: auto;
+    border: none;
+    /* Reset any custom borders */
+    outline: none;
+    background: transparent;
+    cursor: pointer;
+    margin: 0;
+    accent-color: var(--accent);
+    /* Native green dot/checkmark */
+}
+
+/* Ensure no custom outlines interfere */
+.admin-choice-item input[type="radio"]:checked,
+.admin-choice-item input[type="checkbox"]:checked {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Remove any custom pseudo-elements from previous attempts */
+.admin-choice-item input[type="radio"]::before,
+.admin-choice-item input[type="radio"]:checked::before,
+.admin-choice-item input[type="checkbox"]::before,
+.admin-choice-item input[type="checkbox"]:checked::before {
+    display: none;
+    content: none;
+}
+
+/* Answer Image Upload Button - Compact Pill Style */
+.admin-choice-add-image {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    /* Soft border */
+    background-color: #ffffff !important;
+    /* Ensure white pill background */
+    box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06) !important;
+    cursor: pointer;
+    font-size: 1.2rem;
+    line-height: 1;
+    margin-left: 4px;
+    transition: all 0.2s ease;
+}
+
+.admin-choice-add-image:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.1) !important;
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+/* Make image buttons lighter */
 .admin-form input[type="text"],
 .admin-form input[type="number"],
 .admin-form select,
@@ -491,6 +552,12 @@ body {
 
 .btn:active {
     transform: scale(0.98);
+}
+
+.btn:focus {
+    border-color: #06C167;
+    box-shadow: 0 0 0 2px rgba(6, 193, 103, 0.18);
+    outline: none;
 }
 
 /* Primary: Teal Green Gradient */

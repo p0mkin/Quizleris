@@ -1,5 +1,7 @@
 // OCR processing using Tesseract.js
 
+declare const Tesseract: any;
+
 // Process image file with OCR
 export async function processOCRImage(imageFile: File): Promise<{ prompt: string; choices: string[] } | null> {
     // Use Tesseract.js (loaded via CDN) to OCR the image

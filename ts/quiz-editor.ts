@@ -4,7 +4,7 @@ import { getRequiredElement } from "./dom.js";
 import { generateQuizId, saveQuizToStorage, saveImageRegistry } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
-import { t, updatePageLanguage } from "./i18n.js";
+import { t, updatePageLanguage } from "./lang.js";
 
 // Admin UI state
 let adminMode = false;
@@ -51,6 +51,12 @@ export function refreshAdminToggleVisibility(): void {
     }
 
     adminToggle.style.display = isAdminAccessAllowed() ? "block" : "none";
+}
+
+export function refreshAdminUI(): void {
+    if (adminMode && adminQuiz) {
+        renderAdminForm();
+    }
 }
 
 /**
@@ -127,6 +133,8 @@ export function toggleAdminMode(): void {
  */
 export function renderAdminForm(): void {
     if (!adminQuiz) return;
+    // ... existing implementation
+    if (!adminQuiz) return;
 
     adminQuizTitle.value = adminQuiz.title;
 
@@ -180,8 +188,8 @@ export function renderAdminForm(): void {
                     style="position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; padding: 0; min-width: 24px; font-size: 10px;">✕</button>
           </div>
         ` : `
-          <button class="admin-add-q-image btn btn-secondary btn-icon" data-qidx="${qIdx}" style="font-size: 0.8rem; padding: 6px 12px;">
-            ${t('admin.addImage')}
+          <button class="admin-add-q-image btn btn-light" data-qidx="${qIdx}">
+            📷 ${t('admin.addImage')}
           </button>
         `}
       </div>
@@ -365,19 +373,20 @@ function renderQuestionConfig(q: Question, qIdx: number): string {
         </div>
         <div class="admin-choices-list" data-qidx="${qIdx}">
           ${(q.choices || []).map((choice: Choice, cIdx: number) => `
-            <div class="admin-choice-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
-              <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="admin-choice-item" style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <input type="${q.allowMultipleAnswers ? 'checkbox' : 'radio'}" name="correct_${qIdx}" ${choice.isCorrect ? 'checked' : ''} data-cidx="${cIdx}" />
-                <input type="text" class="admin-choice-text" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" style="flex:1;" />
-                <button class="admin-choice-add-image btn btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">🖼</button>
+                <input type="text" class="admin-choice-text" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text || ''}" style="flex:1; padding: 8px; border: 1px solid rgba(0,0,0,0.2); border-radius: 4px;" />
+                
+                ${choice.image ? `
+                  <div style="position: relative; display: inline-block;">
+                    <img src="${choice.image.startsWith("data:") ? choice.image : "data:image/jpeg;base64," + choice.image}" style="max-height: 40px; border-radius: 4px;" />
+                    <button class="admin-choice-remove-image btn btn-danger" data-cidx="${cIdx}" style="position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; padding:0; min-width: 14px; font-size: 8px;">✕</button>
+                  </div>
+                ` : `
+                  <button class="admin-choice-add-image btn btn-light btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">📷</button>
+                `}
+                
                 <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-cidx="${cIdx}">✕</button>
-              </div>
-              ${choice.image ? `
-                <div style="margin-left: 30px; position: relative; display: inline-block;">
-                  <img src="${choice.image.startsWith("data:") ? choice.image : "data:image/jpeg;base64," + choice.image}" style="max-height: 80px; border-radius: 4px;" />
-                  <button class="admin-choice-remove-image btn btn-danger" data-cidx="${cIdx}" style="position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; padding:0; min-width: 18px; font-size: 8px;">✕</button>
-                </div>
-              ` : ''}
             </div>
           `).join('')}
         </div>
@@ -527,12 +536,20 @@ export function saveAdminQuiz(): void {
 
     const { shareCode, registry } = exportQuizForSharing(adminQuiz);
 
-    // Save image registry to localStorage (Approach #2)
     saveImageRegistry(adminQuiz.id, registry);
-
     if (shareCode.length > 8000) alert("WARNING: Quiz data very large. URL might fail.");
 
-    const base = window.location.origin + window.location.pathname;
+    // Fix: Ensure we point to root, stripping subpaths like /topics
+    let path = window.location.pathname;
+    if (path.endsWith("/topics") || path.endsWith("/topics/")) {
+        path = path.replace(/\/topics\/?$/, "/");
+    }
+    // Ensure path ends with / or is basically empty
+    if (!path.endsWith("/")) path += "/";
+
+    // Actually, safest is just origin + / if we assume root deployment
+    const base = window.location.origin + path;
+
     const shareUrl = `${base}?quiz=${shareCode}`;
     const dashUrl = `${base}?dashboard=${adminQuiz.id}`;
 

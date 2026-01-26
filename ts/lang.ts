@@ -36,7 +36,7 @@ const translations: Record<Language, Translations> = {
         'admin.timerWholeQuiz': 'Laikas visam testui',
         'admin.timerNone': 'Be laikmačio (Chronometras)',
         'admin.timeLimit': 'Laiko limitas (sekundės):',
-        'admin.addQuestion': '+ Pridėti klausimą',
+        'admin.addQuestion': 'Pridėti klausimą',
         'admin.scanQuestion': '📷 Nuskaityti klausimą (OCR)',
         'admin.saveQuiz': 'Išsaugoti testą',
         'admin.exportJson': 'Eksportuoti JSON',
@@ -64,7 +64,7 @@ const translations: Record<Language, Translations> = {
         'admin.longAnswer': 'Ilgas atsakymas',
         'admin.isTrue': 'Teisingas atsakymas yra Taip',
         'admin.imageUploadHint': 'Studentas matys mygtuką nuotraukos įkėlimui. Vertinama bus rankiniu būdu.',
-        'admin.addImage': '📷 Pridėti nuotrauką',
+        'admin.addImage': 'Pridėti nuotrauką',
         'admin.removeImage': 'Pašalinti nuotrauką',
         'admin.blankHint': 'Instrukcija: Naudokite ___ (trys pabraukimo brūkšniai) užpildymo vietoms.',
         'admin.insertBlank': 'Įterpti tarpą (___)',
@@ -75,7 +75,7 @@ const translations: Record<Language, Translations> = {
         'admin.modePractice': 'Praktika (Rezultatas po klausimo pateikimo)',
         'admin.modeExam': 'Egzaminas (rezultatai po pateikimo)',
         'admin.promptLabel': 'Klausimas (LaTeX):',
-        'admin.addChoice': '+ Pridėti pasirinkimą',
+        'admin.addChoice': 'Pridėti pasirinkimą',
         'admin.removeQuestion': 'Pašalinti klausimą',
         'admin.removeChoice': 'Ištrinti pasirinkimą',
         'admin.quizSaved': 'Testas išsaugotas!',
@@ -136,6 +136,8 @@ const translations: Record<Language, Translations> = {
         'quiz.pending': 'Laukiama vertinimo',
         'quiz.previewFinished': 'Peržiūra baigta — galite uždaryti šį skirtuką.',
         'quiz.jumpTo': 'Eiti į',
+        'quiz.backBtn': 'Atgal',
+        'quiz.backConfirm': 'Ar tikrai norite grįžti? Testas bus prarastas.',
 
         // Quiz Titles
         'quiz.demoTitle': 'Bandomasis testas',
@@ -184,6 +186,10 @@ const translations: Record<Language, Translations> = {
         'dashboard.time': 'Visas laikas',
         'dashboard.avgTime': 'Vid. laikas per klausimą',
         'dashboard.review': 'Peržiūra',
+        'topics.title': 'Anglų kalbos testų temos',
+        'student.premadeEnglish': 'Anglų kalbos paruošti testai',
+        'student.premadeLithuanianSoon': 'Lietuviški testai (Netrukus)',
+        'student.premadeLithuanianHint': 'Lietuviški testai bus paruošti netrukus',
     },
     en: {
         // Start Menu
@@ -214,7 +220,7 @@ const translations: Record<Language, Translations> = {
         'admin.timerWholeQuiz': 'Time for Whole Quiz',
         'admin.timerNone': 'No Timer (Stopwatch)',
         'admin.timeLimit': 'Time Limit (seconds):',
-        'admin.addQuestion': '+ Add Question',
+        'admin.addQuestion': 'Add Question',
         'admin.scanQuestion': '📷 Scan Question (OCR)',
         'admin.saveQuiz': 'Save Quiz',
         'admin.exportJson': 'Export JSON',
@@ -242,7 +248,7 @@ const translations: Record<Language, Translations> = {
         'admin.longAnswer': 'Long answer',
         'admin.isTrue': 'Correct answer is True',
         'admin.imageUploadHint': 'Student will see a button to upload a photo. This requires manual grading.',
-        'admin.addImage': '📷 Add Image',
+        'admin.addImage': 'Add Image',
         'admin.removeImage': 'Remove Image',
         'admin.blankHint': 'Instruction: Use ___ (three underscores) for blanks.',
         'admin.insertBlank': 'Insert Blank (___)',
@@ -253,7 +259,7 @@ const translations: Record<Language, Translations> = {
         'admin.modePractice': 'Practice (Result after submission)',
         'admin.modeExam': 'Exam (results after submission)',
         'admin.promptLabel': 'Prompt (LaTeX):',
-        'admin.addChoice': '+ Add Choice',
+        'admin.addChoice': 'Add Choice',
         'admin.removeQuestion': 'Remove Question',
         'admin.removeChoice': 'Delete choice',
         'admin.quizSaved': 'Quiz saved!',
@@ -314,6 +320,8 @@ const translations: Record<Language, Translations> = {
         'quiz.pending': 'Pending Review',
         'quiz.previewFinished': 'Preview finished — you can close this tab.',
         'quiz.jumpTo': 'Jump to',
+        'quiz.backBtn': 'Back',
+        'quiz.backConfirm': 'Are you sure you want to go back? Your quiz progress will be lost.',
 
         // Quiz Titles
         'quiz.demoTitle': 'Demo Quiz',
@@ -363,6 +371,10 @@ const translations: Record<Language, Translations> = {
         'dashboard.time': 'Total Time',
         'dashboard.avgTime': 'Avg Time per Question',
         'dashboard.review': 'Review',
+        'topics.title': 'English Quiz Topics',
+        'student.premadeEnglish': 'English Premade Quizzes',
+        'student.premadeLithuanianSoon': 'Lithuanian Quizzes (Coming Soon)',
+        'student.premadeLithuanianHint': 'Lithuanian quizzes coming soon',
     }
 };
 

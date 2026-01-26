@@ -3,7 +3,7 @@ import { getRequiredElement } from "./dom.js";
 import { generateQuizId, saveQuizToStorage, saveImageRegistry } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
-import { t, updatePageLanguage } from "./i18n.js";
+import { t, updatePageLanguage } from "./lang.js";
 // Admin UI state
 let adminMode = false;
 let adminQuiz = null;
@@ -169,8 +169,8 @@ export function renderAdminForm() {
                     style="position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; padding: 0; min-width: 24px; font-size: 10px;">✕</button>
           </div>
         ` : `
-          <button class="admin-add-q-image btn btn-secondary btn-icon" data-qidx="${qIdx}" style="font-size: 0.8rem; padding: 6px 12px;">
-            ${t('admin.addImage')}
+          <button class="admin-add-q-image btn btn-light" data-qidx="${qIdx}">
+            📷 ${t('admin.addImage')}
           </button>
         `}
       </div>
@@ -374,7 +374,7 @@ function renderQuestionConfig(q, qIdx) {
                     <button class="admin-choice-remove-image btn btn-danger" data-cidx="${cIdx}" style="position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; padding:0; min-width: 14px; font-size: 8px;">✕</button>
                   </div>
                 ` : `
-                  <button class="admin-choice-add-image btn btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">🖼</button>
+                  <button class="admin-choice-add-image btn btn-light btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">📷</button>
                 `}
                 
                 <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-cidx="${cIdx}">✕</button>

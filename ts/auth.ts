@@ -1,3 +1,4 @@
+import { t } from "./lang.js";
 // Admin authentication constants
 export const ADMIN_PASSWORD_KEY = "quiz_admin_password";
 export const ADMIN_SESSION_KEY = "quiz_admin_session";
