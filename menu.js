@@ -107,7 +107,7 @@ export function renderStudentJoin(quizToJoin) {
              
              <div class="join-input-group">
                 <label for="join-student-name" class="join-label">${t('join.yourName')}</label>
-                <input type="text" id="join-student-name" class="join-input" placeholder="${t('join.namePlaceholder')}">
+                <input type="text" id="join-student-name" class="input-field join-input" placeholder="${t('join.namePlaceholder')}">
              </div>
              
              <div class="join-actions">
@@ -158,7 +158,7 @@ export function handleStudentClick() {
     formContainer.innerHTML = `
             <div style="margin-bottom: 20px;">
                 <label data-i18n="student.nameLabel" style="display: block; margin-bottom: 8px; font-weight: 500;">Your Name (optional)</label>
-                <input type="text" id="student-name" class="admin-form" data-i18n-placeholder="student.namePlaceholder" placeholder="Enter name to track results">
+                <input type="text" id="student-name" class="input-field" data-i18n-placeholder="student.namePlaceholder" placeholder="Enter name to track results">
             </div>
             
             <div style="margin: 20px 0;">
@@ -168,23 +168,14 @@ export function handleStudentClick() {
 
             <div style="margin-top: 20px;">
                 <label data-i18n="student.quizIdLabel" style="display: block; margin-bottom: 8px; font-weight: 500;">Or Enter Quiz Code / ID</label>
-                <input type="text" id="quiz-id-input" class="admin-form" data-i18n-placeholder="student.quizIdPlaceholder" placeholder="demo">
+                <input type="text" id="quiz-id-input" class="input-field" data-i18n-placeholder="student.quizIdPlaceholder" placeholder="demo">
             </div>
             <div style="margin-top: 32px; display: flex; gap: 12px;">
                 <button id="start-quiz-btn" class="btn btn-primary" data-i18n="student.startBtn" style="flex: 1; padding: 12px;">Start Quiz</button>
                 <button id="back-menu-btn" class="btn" data-i18n="student.backBtn" style="flex: 1; padding: 12px;">Back</button>
             </div>
         `;
-    const inputs = formContainer.querySelectorAll("input");
-    inputs.forEach(inp => {
-        inp.style.width = "100%";
-        inp.style.padding = "10px";
-        inp.style.borderRadius = "12px";
-        inp.style.border = "1px solid rgba(255,255,255,0.1)";
-        inp.style.background = "var(--bg)";
-        inp.style.color = "var(--text)";
-        inp.style.marginBottom = "4px";
-    });
+    // Style removal: inputs now handled by .input-field class
 
     startMenu.appendChild(formContainer);
 

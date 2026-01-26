@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <!-- Basic page metadata -->
   <meta charset="UTF-8" />
@@ -17,10 +18,13 @@
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
   <script type="module" src="app.js"></script>
 </head>
+
 <body>
   <div id="app-root">
     <!-- Minimal static structure; TypeScript will fill this dynamically -->
     <header class="quiz-header" style="display: none;">
+      <!-- Place spresk.lt logo here -->
+      <!-- <img src="path/to/spresk-logo.png" alt="spresk.lt" style="height: 40px;"> -->
       <h1 data-i18n="app.title">Quizleris</h1>
       <button id="admin-toggle" class="btn" style="display: none;" data-i18n="admin.adminMode">Admin Mode</button>
     </header>
@@ -73,8 +77,8 @@
       <div class="admin-form">
         <label>
           <span data-i18n="admin.quizTitle">Quiz Title:</span>
-          <input type="text" id="admin-quiz-title" data-i18n-placeholder="admin.quizTitlePlaceholder"
-            placeholder="My Math Quiz" />
+          <input type="text" id="admin-quiz-title" class="input-field"
+            data-i18n-placeholder="admin.quizTitlePlaceholder" placeholder="My Math Quiz" />
         </label>
         <div
           style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
@@ -88,7 +92,8 @@
           </div>
           <div style="flex: 1;">
             <label style="display: block; margin-bottom: 5px;" data-i18n="admin.timeLimit">Time Limit (seconds):</label>
-            <input type="number" id="admin-timer-limit" class="admin-form" value="30" style="width: 100%;" />
+            <input type="number" id="admin-timer-limit" class="input-field admin-form" value="30"
+              style="width: 100%;" />
           </div>
         </div>
         <div
@@ -143,4 +148,5 @@
     </section>
   </div>
 </body>
+
 </html>

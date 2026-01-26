@@ -184,8 +184,8 @@ const translations = {
         'app.title': 'Quizleris',
         'menu.welcome': 'Welcome to Quizleris',
         'menu.selectRole': 'Please select your role:',
-        'menu.student': "I'm Student",
-        'menu.admin': "I'm Admin",
+        'menu.student': "I’m a Student",
+        'menu.admin': "I’m an Admin",
         'menu.dashboard': 'View Dashboard',
 
         // Student Form

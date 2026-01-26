@@ -131,7 +131,7 @@ export function renderAdminForm() {
         <h3 style="margin:0;">${t('admin.question')} ${qIdx + 1}</h3>
         <div style="display: flex; gap: 10px; align-items: center;">
           <label style="font-size: 0.9rem;">${t('admin.qType')}</label>
-          <select class="admin-q-type-selector" data-qidx="${qIdx}" style="padding: 4px 8px; border-radius: 4px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1);">
+          <select class="admin-q-type-selector input-field" data-qidx="${qIdx}">
             <option value="multiple-choice" ${q.type === 'multiple-choice' || !q.type ? 'selected' : ''}>${t('admin.typeMC')}</option>
             <option value="numeric" ${q.type === 'numeric' ? 'selected' : ''}>${t('admin.typeNum')}</option>
             <option value="fill-blank" ${q.type === 'fill-blank' ? 'selected' : ''}>${t('admin.typeBlank')}</option>
@@ -156,7 +156,7 @@ export function renderAdminForm() {
       </div>
       <label>
         ${t('admin.promptLabel')}
-        <textarea class="admin-question-prompt" data-qidx="${qIdx}">${q.prompt}</textarea>
+        <textarea class="admin-question-prompt input-field" data-qidx="${qIdx}">${q.prompt}</textarea>
       </label>
       <div class="admin-q-config-area" data-qidx="${qIdx}">
         ${renderQuestionConfig(q, qIdx)}
@@ -331,7 +331,7 @@ function renderQuestionConfig(q, qIdx) {
             <div class="admin-choice-item" style="flex-direction: column; align-items: stretch; gap: 8px;">
               <div style="display: flex; align-items: center; gap: 10px;">
                 <input type="${q.allowMultipleAnswers ? 'checkbox' : 'radio'}" name="correct_${qIdx}" ${choice.isCorrect ? 'checked' : ''} data-cidx="${cIdx}" />
-                <input type="text" class="admin-choice-text" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" style="flex:1;" />
+                <input type="text" class="admin-choice-text input-field" data-qidx="${qIdx}" data-cidx="${cIdx}" value="${choice.text}" style="flex:1;" />
                 <button class="admin-choice-add-image btn btn-icon" data-cidx="${cIdx}" title="${t('admin.addImage')}">🖼</button>
                 <button class="admin-remove-choice-btn btn btn-danger btn-icon" data-cidx="${cIdx}">✕</button>
               </div>
@@ -348,14 +348,14 @@ function renderQuestionConfig(q, qIdx) {
         <div style="display: flex; gap: 15px; align-items: flex-end;">
           <div style="flex: 2;">
             <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.numAnswer')}</label>
-            <input type="number" class="admin-num-answer" data-qidx="${qIdx}" value="${q.correctAnswerNumber ?? ''}" style="width: 100%; padding: 8px;" />
+            <input type="number" class="admin-num-answer input-field" data-qidx="${qIdx}" value="${q.correctAnswerNumber ?? ''}" />
           </div>
           <div style="flex: 1;">
             <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.numTolerance')}</label>
-            <input type="number" class="admin-num-tolerance" data-qidx="${qIdx}" value="${q.toleranceValue ?? 0}" style="width: 100%; padding: 8px;" />
+            <input type="number" class="admin-num-tolerance input-field" data-qidx="${qIdx}" value="${q.toleranceValue ?? 0}" />
           </div>
           <div style="flex: 1;">
-            <select class="admin-num-tolerance-type" data-qidx="${qIdx}" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.2); color:white;">
+            <select class="admin-num-tolerance-type input-field" data-qidx="${qIdx}">
               <option value="absolute" ${q.toleranceType === 'absolute' ? 'selected' : ''}>${t('admin.tolAbs')}</option>
               <option value="percentage" ${q.toleranceType === 'percentage' ? 'selected' : ''}>${t('admin.tolPct')}</option>
             </select>
@@ -372,7 +372,7 @@ function renderQuestionConfig(q, qIdx) {
           ${Array.from({ length: blankCount }).map((_, bIdx) => `
             <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; display: flex; align-items: center; gap: 12px;">
               <span style="font-size: 0.9rem; font-weight: bold; color: var(--accent); min-width: 90px;">Laukas ${bIdx + 1}:</span>
-              <input type="text" class="admin-blank-answer" data-qidx="${qIdx}" data-bidx="${bIdx}" value="${q.blankAnswers?.[bIdx] || ''}" style="flex:1; padding: 10px; background: rgba(0,0,0,0.2); color:white;" />
+              <input type="text" class="admin-blank-answer input-field" data-qidx="${qIdx}" data-bidx="${bIdx}" value="${q.blankAnswers?.[bIdx] || ''}" style="flex:1;" />
             </div>`).join('')}
           ${blankCount === 0 ? `<p style="color: #ff9800; font-size: 0.85rem;">! Nepamirškite klausime įrašyti ___</p>` : ''}
         </div>`;
@@ -397,7 +397,7 @@ function renderQuestionConfig(q, qIdx) {
             ${t('admin.longAnswer')}
           </label>
           <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">${t('admin.keywords')}</label>
-          <input type="text" class="admin-text-keywords" data-qidx="${qIdx}" value="${(q.expectedKeywords || []).join(', ')}" style="width: 100%; padding: 8px;" />
+          <input type="text" class="admin-text-keywords input-field" data-qidx="${qIdx}" value="${(q.expectedKeywords || []).join(', ')}" />
         </div>`;
         case 'image-upload':
             return `<div style="background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 8px; text-align: center;"><p style="margin:0; font-size: 0.9rem;">${t('admin.imageUploadHint')}</p></div>`;
@@ -478,14 +478,14 @@ export function saveAdminQuiz() {
             <div style="margin-bottom: 10px;">
                 <label style="display: block; font-weight: bold;">Student URL:</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" readonly value="${shareUrl}" id="share-url-input" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1);" />
+                    <input type="text" readonly value="${shareUrl}" id="share-url-input" class="input-field" style="flex: 1;" />
                     <button id="copy-share-btn" class="btn btn-secondary">Copy</button>
                 </div>
             </div>
             <div style="margin-bottom: 10px;">
                 <label style="display: block; font-weight: bold;">Dashboard URL:</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" readonly value="${dashUrl}" id="dash-url-input" style="flex: 1; padding: 8px; background: rgba(0,0,0,0.2); color: white; border: 1px solid rgba(255,255,255,0.1);" />
+                    <input type="text" readonly value="${dashUrl}" id="dash-url-input" class="input-field" style="flex: 1;" />
                     <button id="copy-dash-btn" class="btn btn-secondary">Copy</button>
                 </div>
             </div>
