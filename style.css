@@ -322,12 +322,20 @@ body {
     font-size: 0.85rem;
     position: relative;
     overflow: hidden;
+    /* Fixes: Height consistency and centering. 
+       Increased to 80px to safely accommodate 3-line text wrapping */
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .segment-btn.active {
     background: var(--accent);
     color: white;
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+    /* Fix: Green shadow instead of violet */
+    box-shadow: 0 4px 15px rgba(27, 155, 126, 0.4);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
@@ -352,7 +360,6 @@ body {
     display: none;
 }
 
-/* Highlight selected radio/checkbox in Admin UI - NATIVE ACCENT */
 .admin-choice-item input[type="radio"],
 .admin-choice-item input[type="checkbox"] {
     appearance: auto;

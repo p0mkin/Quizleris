@@ -449,3 +449,16 @@ export function getImageFromRegistry(quizId, imgId) {
         return null;
     }
 }
+
+/**
+ * Clears all locally saved quizzes from localStorage.
+ * Preserves the result history, but wipes all user-created quizzes and their image registries.
+ */
+export function clearAllLocalQuizzes() {
+    const allIds = getAllQuizIds();
+    allIds.forEach(id => {
+        localStorage.removeItem(STORAGE_KEY_PREFIX + id);
+        localStorage.removeItem(STORAGE_KEY_IMAGE_REGISTRY_PREFIX + id);
+    });
+    localStorage.removeItem(STORAGE_KEY_ALL_IDS);
+}

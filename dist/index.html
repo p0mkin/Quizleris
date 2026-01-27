@@ -11,14 +11,14 @@
   <link rel="stylesheet" href="style.css" />
   <!-- KaTeX CSS for LaTeX rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
-  <link rel="stylesheet" href="style.css?v=20260126235000">
+  <link rel="stylesheet" href="style.css?v=0.5.0">
   <!-- KaTeX JS (we'll call this later from TypeScript-compiled JS) -->
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
   <!-- Tesseract.js for OCR -->
   <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
   <!-- Our app entrypoint (this will be built from app.ts to app.js) -->
-  <script type="module" src="app.js?v=20260127011500"></script>
+  <script type="module" src="app.js?v=0.5.0"></script>
 </head>
 
 <body>
@@ -107,31 +107,39 @@
           </div>
         </div>
         <div
-          style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
+          style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;">
           <div style="flex: 1;">
-            <label for="admin-quiz-mode" style="display: block; margin-bottom: 5px;" data-i18n="admin.quizMode">Quiz
-              Mode:</label>
-            <select id="admin-quiz-mode" class="admin-form" style="width: 100%;">
+            <span style="display: block; margin-bottom: 8px; font-weight: bold;" data-i18n="admin.quizMode">Quiz
+              Mode:</span>
+            <div class="segmented-control" id="admin-quiz-mode-group" role="group">
+              <button type="button" class="segment-btn" data-value="practice" data-i18n="res_vis_det">Detailed
+                Review (Questions & Answers)</button>
+              <button type="button" class="segment-btn" data-value="exam" data-i18n="res_vis_sco">Score Only</button>
+            </div>
+            <!-- Hidden select for backward compatibility with existing logic -->
+            <select id="admin-quiz-mode" class="admin-form"
+              style="position: absolute; opacity: 0; pointer-events: none; height: 0; width: 0; overflow: hidden;">
               <option value="practice" data-i18n="admin.modePractice">Practice (instant feedback)</option>
               <option value="exam" data-i18n="admin.modeExam">Exam (results after submission)</option>
             </select>
+            <input type="hidden" id="admin-quiz-mode-value" value="practice">
           </div>
           <div style="flex: 1;">
-            <span style="display: block; margin-bottom: 5px; font-weight: bold;" data-i18n="admin.shuffleConfig">Shuffle
+            <span style="display: block; margin-bottom: 8px; font-weight: bold;" data-i18n="admin.shuffleConfig">Shuffle
               Settings:</span>
-            <div style="display: flex; gap: 15px; align-items: center; margin-top: 5px;">
-              <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text);">
-                <input type="checkbox" id="admin-shuffle-questions" /> <span
-                  data-i18n="admin.shuffleQuestions">Questions</span>
-              </label>
-              <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text);">
-                <input type="checkbox" id="admin-shuffle-answers" /> <span
-                  data-i18n="admin.shuffleAnswers">Choices</span>
-              </label>
+            <div class="segmented-control" id="admin-shuffle-group">
+              <button type="button" class="segment-btn" id="btn-shuffle-questions"
+                data-i18n="admin.shuffleQuestions">Questions</button>
+              <button type="button" class="segment-btn" id="btn-shuffle-answers"
+                data-i18n="admin.shuffleAnswers">Choices</button>
             </div>
+            <!-- Hidden inputs for compatibility -->
+            <input type="checkbox" id="admin-shuffle-questions" style="display: none;" />
+            <input type="checkbox" id="admin-shuffle-answers" style="display: none;" />
           </div>
         </div>
-        <div class="form-group" style="margin-bottom: 20px;">
+        <!-- Result Visibility section - HIDDEN, state controlled by Quiz Mode above -->
+        <div class="form-group result-visibility-section" style="display: none;">
           <span id="res-vis-title" style="display: block; margin-bottom: 8px; font-weight: bold;"
             data-i18n="res_vis_label">Result
             Visibility:</span>
@@ -156,6 +164,9 @@
           <button id="admin-export" class="btn btn-secondary" data-i18n="admin.exportJson">Export JSON</button>
           <button id="admin-import-btn" class="btn btn-secondary" data-i18n="admin.importJson">Import JSON</button>
           <input type="file" id="admin-import-input" accept=".json" style="display: none;" />
+          <button id="admin-delete-all-btn" class="btn btn-danger"
+            style="margin-left: auto; background-color: #ef4444; color: white; border: 1px solid #dc2626;"
+            data-i18n="admin.deleteAll">🗑️ Delete All Local Quizzes</button>
           <button id="admin-cancel" class="btn" data-i18n="admin.cancel">Cancel</button>
         </div>
         <div id="admin-share-code" class="admin-share" style="display: none;"></div>

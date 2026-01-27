@@ -1,6 +1,6 @@
 import { quiz } from "./state.js";
 import { getRequiredElement } from "./dom.js";
-import { generateQuizId, saveQuizToStorage, saveImageRegistry } from "./storage.js";
+import { generateQuizId, saveQuizToStorage, saveImageRegistry, clearAllLocalQuizzes } from "./storage.js";
 import { isAdminAccessAllowed, promptAdminPassword } from "./auth.js";
 import { processOCRImage } from "./ocr.js";
 import { t, updatePageLanguage } from "./i18n.js";
@@ -665,20 +665,24 @@ function setupAdminEventsInternal() {
         if (!file)
             return;
         const reader = new FileReader();
-        reader.onload = (ev) => { try {
-            const json = JSON.parse(ev.target?.result);
-            if (json.questions) {
-                adminQuiz = json;
-                renderAdminForm();
+        reader.onload = (ev) => {
+            try {
+                const json = JSON.parse(ev.target?.result);
+                if (json.questions) {
+                    adminQuiz = json;
+                    renderAdminForm();
+                }
             }
-        }
-        catch (e) {
-            alert("Import failed");
-        } };
+            catch (e) {
+                alert("Import failed");
+            }
+        };
         reader.readAsText(file);
     });
-    adminCancelBtn.addEventListener("click", () => { if (confirm(t('admin.confirmCancel')))
-        toggleAdminMode(); });
+    adminCancelBtn.addEventListener("click", () => {
+        if (confirm(t('admin.confirmCancel')))
+            toggleAdminMode();
+    });
     document.getElementById("admin-btn-back")?.addEventListener("click", () => {
         if (adminMode)
             toggleAdminMode();

@@ -1,1 +1,0 @@
-ts/admin.ts(36,5): error TS6133: 'goHome' is declared but its value is never read.
