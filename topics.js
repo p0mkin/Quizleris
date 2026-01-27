@@ -10,6 +10,17 @@ export function renderTopicsPage() {
     startMenu = getRequiredElement("start-menu");
     quizHeader = document.querySelector(".quiz-header");
     quizMain = document.querySelector(".quiz-main");
+
+    if (quizHeader) {
+        // Only show header if there's actually something to show (like back button when quiz starts)
+        // For topics page, hide it to avoid "ugly white space"
+        quizHeader.style.display = "none";
+
+        // Ensure logo is always visible on topics page
+        const logo = document.getElementById("app-logo");
+        if (logo) logo.style.display = "block";
+    }
+
     // Hide welcome/student form
     const welcomeH1 = startMenu.querySelector('h1');
     const welcomeP = startMenu.querySelector('p');
@@ -46,14 +57,14 @@ export function renderTopicsPage() {
         
         <section style="margin-bottom: 48px;">
             <h2 style="font-size: 1.8rem; border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 24px;">Algebra</h2>
-            <div class="bundle-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            <div class="bundle-grid">
                 ${grouped.algebra.map(b => renderBundleCard(b)).join('')}
             </div>
         </section>
 
         <section>
             <h2 style="font-size: 1.8rem; border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 24px;">Combinatorics</h2>
-            <div class="bundle-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            <div class="bundle-grid">
                 ${grouped.combinatorics.map(b => renderBundleCard(b)).join('')}
             </div>
         </section>
@@ -65,16 +76,7 @@ export function renderTopicsPage() {
     }
     // Wire up back button
     document.getElementById("topics-back-btn").onclick = () => {
-        if (window.history.length > 1) {
-            window.history.back();
-        }
-        else {
-            window.history.pushState({}, "", "/");
-            renderStartMenu();
-        }
-        if (langToggle && langToggle.parentElement) {
-            langToggle.parentElement.style.display = "block";
-        }
+        window.location.href = "/";
     };
     // Wire up start buttons
     bundles.forEach(b => {
@@ -90,7 +92,7 @@ function renderBundleCard(bundle) {
     const difficultyColor = bundle.difficulty === 'beginner' ? '#10b981' :
         bundle.difficulty === 'intermediate' ? '#f59e0b' : '#ef4444';
     return `
-        <div class="bundle-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; transition: transform 0.2s, background 0.2s;">
+        <div class="bundle-card">
             <h3 style="margin: 0 0 12px 0; font-size: 1.25rem;">${bundle.title}</h3>
             <div style="display: flex; gap: 8px; margin-bottom: 16px;">
                 <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: ${difficultyColor}; background: ${difficultyColor}22; padding: 2px 8px; border-radius: 4px;">

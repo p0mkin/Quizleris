@@ -261,8 +261,10 @@ function renderNumeric(q) {
             renderExamNavigation();
     };
     if (quiz?.quiz.mode !== 'exam' && !isAnswered) {
-        input.onkeydown = (e) => { if (e.key === 'Enter')
-            onAnswer(input.value); };
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter')
+                onAnswer(input.value);
+        };
     }
     answersContainer.appendChild(input);
     if (!isAnswered && quiz?.quiz.mode !== 'exam') {
@@ -768,14 +770,7 @@ export function showResults() {
         renderQuiz();
     };
     document.getElementById("back-to-menu-btn")?.addEventListener("click", () => {
-        if (isPreview) {
-            // Force clean redirect to root to clear the huge Base64 quiz data from URL
-            window.location.href = window.location.origin + window.location.pathname;
-        }
-        else {
-            container.remove();
-            renderStartMenu();
-        }
+        window.location.href = "/";
     });
     if (isPreview) {
         document.getElementById("close-preview-btn")?.addEventListener("click", () => {

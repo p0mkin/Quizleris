@@ -29,6 +29,72 @@ function initApp() {
         const quizParam = params.get("quiz");
         const viewParam = params.get("view");
         const path = window.location.pathname;
+
+        // Logo click logic
+        const logo = document.getElementById('app-logo');
+        if (logo) {
+            logo.addEventListener('click', () => {
+                const currentParams = new URLSearchParams(window.location.search);
+                const isTopics = currentParams.get("view") === "topics" || path.includes("/topics");
+                const isResults = !!document.getElementById("results-container");
+
+                // Get global quiz state safely
+                try {
+                    const questionCounter = document.getElementById("question-counter");
+                    const examNav = document.getElementById("exam-nav");
+                    const quizMain = document.querySelector(".quiz-main");
+                    const isQuizVisible = quizMain && quizMain.style.display !== "none";
+                    const isResultVisible = !!document.getElementById("results-container");
+
+                    // If we are in a quiz view (quiz visible, no results), or we see specific counters
+                    if ((questionCounter || examNav || isQuizVisible) && !isResultVisible) {
+                        // Double check we are not just on an empty container (e.g. before render)
+                        // But usually if quizMain is visible and no results, we are in a quiz.
+                        if (confirm("Palikti testą?")) {
+                            window.location.href = "/";
+                        }
+                        return;
+                    }
+                } catch (e) { console.error(e); }
+
+                if (isTopics || isResults) {
+                    window.location.href = "/";
+                } else {
+                    // Default behavior (Start Menu, Dashboard, etc.) -> Reload
+                    window.location.href = "/";
+                }
+            });
+
+
+            // Global Back Button Logic (for the arrow in header)
+            const quizBackBtn = document.getElementById("quiz-back-btn");
+            if (quizBackBtn) {
+                quizBackBtn.addEventListener("click", () => {
+                    // Check if active quiz
+                    const isResultVisible = !!document.getElementById("results-container");
+                    // Back button usually only appears IN quiz, but let's be safe
+                    if (!isResultVisible) {
+                        if (confirm("Palikti testą?")) {
+                            window.location.href = "/";
+                        }
+                    } else {
+                        // If result is visible, just go home
+                        window.location.href = "/";
+                    }
+                });
+            }
+
+            // Handle cursor style based on page
+            const updateLogoCursor = () => {
+                // Always clickable now
+                logo.style.cursor = "pointer";
+                logo.style.opacity = "1";
+            };
+
+            // Poll for changes since state isn't easily observable from here without more refactoring
+            setInterval(updateLogoCursor, 500);
+        }
+
         if (dashParam) {
             renderDashboard(dashParam);
         }

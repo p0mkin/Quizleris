@@ -25,15 +25,10 @@
   <div id="app-root">
     <!-- Minimal static structure; TypeScript will fill this dynamically -->
     <header class="quiz-header" style="display: none;">
-      <!-- Place spresk.lt logo here -->
-      <!-- <img src="path/to/spresk-logo.png" alt="spresk.lt" style="height: 40px;"> -->
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <button id="quiz-back-btn" class="btn" style="display: none; font-size: 0.9rem; padding: 6px 12px;"
-          title="Back">
-          ← <span data-i18n="quiz.backBtn">Back</span>
-        </button>
-        <h1 data-i18n="app.title">Quizleris</h1>
-      </div>
+      <button id="quiz-back-btn" class="btn" style="display: none; font-size: 0.9rem; padding: 6px 12px;" title="Back">
+        ← <span data-i18n="quiz.backBtn">Back</span>
+      </button>
+      <div style="flex: 1;"></div>
       <button id="admin-toggle" class="btn" style="display: none;" data-i18n="admin.adminMode">Admin Mode</button>
     </header>
     <section id="start-menu" class="start-menu">
@@ -166,6 +161,7 @@
       </div>
     </section>
   </div>
+  <img id="app-logo" src="spresk_transparent.png" alt="spresk.lt">
   <div id="language-toggle-container" style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
     <button id="lang-toggle" class="btn" style="font-size: 0.9rem; padding: 6px 12px;" title="Switch Language">
       🌐 <span id="lang-label">LT</span>
