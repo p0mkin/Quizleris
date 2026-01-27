@@ -60,7 +60,6 @@ Open `http://localhost:8080`.
 ### v0.5.0
 - **Cleanup**: Removed legacy TypeScript source files and documentation.
 - **Optimization**: Streamlined codebase for pure Vanilla JS development.
-- **Updates**: Refreshed README and version bumps.
 
 ### v0.4.x
 - **Vanilla JS Refactor**: Migrated codebase from TypeScript to pure Vanilla JS.
