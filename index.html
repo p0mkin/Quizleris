@@ -37,11 +37,7 @@
       <button id="admin-toggle" class="btn" style="display: none;" data-i18n="admin.adminMode">Admin Mode</button>
     </header>
     <section id="start-menu" class="start-menu">
-      <div style="position: absolute; top: 20px; right: 20px;">
-        <button id="lang-toggle" class="btn" style="font-size: 0.9rem; padding: 6px 12px;" title="Switch Language">
-          🌐 <span id="lang-label">LT</span>
-        </button>
-      </div>
+
       <h1 data-i18n="menu.welcome">Sveiki atvykę į Quizleris</h1>
       <p data-i18n="menu.selectRole">Pasirinkite savo vaidmenį:</p>
       <div class="menu-actions">
@@ -169,6 +165,11 @@
         <div id="admin-share-code" class="admin-share" style="display: none;"></div>
       </div>
     </section>
+  </div>
+  <div id="language-toggle-container" style="position: absolute; top: 20px; right: 20px; z-index: 1000;">
+    <button id="lang-toggle" class="btn" style="font-size: 0.9rem; padding: 6px 12px;" title="Switch Language">
+      🌐 <span id="lang-label">LT</span>
+    </button>
   </div>
 </body>
 
