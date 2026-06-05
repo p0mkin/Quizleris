@@ -1,6 +1,7 @@
 import { getRequiredElement } from "./dom.js";
 import { updatePageLanguage, t, getLanguage } from "./lang.js";
 import { renderTopicsPage } from "./topics.js";
+import { renderGeoGuesserPage } from "./geoguesser.js";
 // DOM Elements
 let startMenu;
 let quizHeader;
@@ -83,6 +84,12 @@ export function renderStartMenu() {
                 <span>${t('menu.discover')}</span>
             </button>
 
+            <!-- GeoGuesser button -->
+            <button class="discover-btn" id="hero-geoguesser-btn" style="background: linear-gradient(135deg,#1e1b4b,#312e81); border: 1.5px solid rgba(99,102,241,0.5); margin-top: 4px;">
+                <span>🌍</span>
+                <span>GeoGuesser</span>
+            </button>
+
             <!-- Admin / Dashboard subtle links -->
             <div class="menu-admin-row">
                 <button id="menu-btn-admin" class="btn" style="font-size:0.82rem; padding:6px 14px; opacity:0.7;" data-i18n="menu.admin">${t('menu.admin')}</button>
@@ -116,6 +123,14 @@ export function renderStartMenu() {
             isStudentMenuOpen = true;
             window.history.pushState({}, '', '/topics');
             renderTopicsPage();
+        });
+    }
+
+    // Wire GeoGuesser button
+    const geoBtn = document.getElementById('hero-geoguesser-btn');
+    if (geoBtn) {
+        geoBtn.addEventListener('click', () => {
+            renderGeoGuesserPage();
         });
     }
 
